@@ -50,16 +50,12 @@ class _LoginViewState extends State<LoginView> {
                     child: const Text('Entrar'), // RF001
                   ),
             TextButton(
-              onPressed: () {
-                /* Navegar para Cadastro */
-              },
-              child: const Text('Cadastrar Usuário'), // RF001
+              onPressed: () => Navigator.pushNamed(context, '/register'),
+              child: const Text('Cadastrar Usuário'),
             ),
             TextButton(
-              onPressed: () {
-                /* Navegar para Recuperação */
-              },
-              child: const Text('Esqueceu a senha?'), // RF001
+              onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
+              child: const Text('Esqueceu a senha?'),
             ),
           ],
         ),
