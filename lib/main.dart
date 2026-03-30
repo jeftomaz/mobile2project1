@@ -5,6 +5,8 @@ import 'views/auth/login_view.dart';
 import 'views/auth/register_view.dart';
 import 'views/auth/forgot_password_view.dart';
 import 'viewmodels/movie_viewmodel.dart';
+import 'views/home/home_view.dart';
+import 'views/specific/add_movie_view.dart';
 
 void main() {
   runApp(
@@ -33,10 +35,10 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginView(),
-        '/home': (context) =>
-            const Scaffold(body: Center(child: Text('Tela Principal'))),
+        '/home': (context) => const HomeView(),
         '/register': (context) => const RegisterView(),
         '/forgot-password': (context) => const ForgotPasswordView(),
+        '/movie/add': (context) => const AddMovieView(),
       },
     );
   }
