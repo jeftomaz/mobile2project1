@@ -1,9 +1,9 @@
 class Movie {
   final String id;
-  final String title;
-  final int year;
-  final String genre;
-  final String? coverPath; // caminho local da imagem
+  String title;
+  int year;
+  String genre;
+  String? coverPath; // TODO: Image.file não funciona no Flutter Web.
   bool watched;
 
   Movie({
