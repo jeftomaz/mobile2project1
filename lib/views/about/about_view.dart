@@ -15,7 +15,7 @@ class AboutView extends StatelessWidget {
             const FlutterLogo(size: 80),
             const SizedBox(height: 20),
             Text(
-              'CineLog',
+              'Framy',
               style: Theme.of(
                 context,
               ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -32,14 +32,14 @@ class AboutView extends StatelessWidget {
             const Divider(height: 40),
             _Section(
               title: 'Equipe de Desenvolvimento',
-              content: 'Nome do Aluno 1\nNome do Aluno 2',
+              content: 'Ícaro Costa Pavan\nJeferson Tomaz Querino',
             ),
             const Divider(height: 40),
             _InfoRow(label: 'Disciplina', value: 'Desenvolvimento Mobile II'),
             const SizedBox(height: 8),
-            _InfoRow(label: 'Instituição', value: 'Nome da Instituição'),
+            _InfoRow(label: 'Instituição', value: 'UNAERP'),
             const SizedBox(height: 8),
-            _InfoRow(label: 'Professor', value: 'Nome do Professor'),
+            _InfoRow(label: 'Professor', value: 'Samuel Oliva'),
           ],
         ),
       ),

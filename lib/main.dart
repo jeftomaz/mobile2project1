@@ -8,6 +8,7 @@ import 'viewmodels/movie_viewmodel.dart';
 import 'views/home/home_view.dart';
 import 'views/specific/add_movie_view.dart';
 import 'views/about/about_view.dart';
+import 'views/specific/movie_stats_view.dart';
 
 void main() {
   runApp(
