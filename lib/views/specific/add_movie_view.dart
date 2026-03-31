@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../models/movie.dart';
 import '../../viewmodels/movie_viewmodel.dart';
+import 'dart:typed_data';
 
 class AddMovieView extends StatefulWidget {
   const AddMovieView({super.key});
@@ -16,7 +17,7 @@ class _AddMovieViewState extends State<AddMovieView> {
   final _titleController = TextEditingController();
   final _yearController = TextEditingController();
   String? _selectedGenre;
-  String? _coverPath;
+  Uint8List? _coverBytes;
 
   final List<String> _genres = [
     'Ação',
@@ -38,7 +39,8 @@ class _AddMovieViewState extends State<AddMovieView> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
-      setState(() => _coverPath = picked.path);
+      final bytes = await picked.readAsBytes();
+      setState(() => _coverBytes = bytes);
     }
   }
 
@@ -58,7 +60,7 @@ class _AddMovieViewState extends State<AddMovieView> {
       title: title,
       year: year,
       genre: _selectedGenre!,
-      coverPath: _coverPath,
+      coverBytes: _coverBytes, // <-- aqui
     );
 
     context.read<MovieViewModel>().addMovie(movie);
@@ -84,10 +86,10 @@ class _AddMovieViewState extends State<AddMovieView> {
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: _coverPath != null
+                child: _coverBytes != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(File(_coverPath!), fit: BoxFit.cover),
+                        child: Image.memory(_coverBytes!, fit: BoxFit.cover),
                       )
                     : const Column(
                         mainAxisAlignment: MainAxisAlignment.center,

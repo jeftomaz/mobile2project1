@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/movie_viewmodel.dart';
-import 'dart:io';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
@@ -13,7 +12,7 @@ class HomeView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Meus Filmes'),
-        automaticallyImplyLeading: false, // remove botão de voltar
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline),
@@ -30,15 +29,16 @@ class HomeView extends StatelessWidget {
               itemBuilder: (context, index) {
                 final movie = movieVM.movies[index];
                 return ListTile(
-                  // TODO: Image.file não funciona no Flutter Web.
-                  // Ao definir plataforma alvo, substituir por Image.memory (web) ou manter Image.file (mobile).
-                  leading: movie.coverPath != null
+                  leading: movie.coverBytes != null
                       ? SizedBox(
                           width: 50,
                           height: 50,
-                          child: Image.file(
-                            File(movie.coverPath!),
-                            fit: BoxFit.cover,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: Image.memory(
+                              movie.coverBytes!,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         )
                       : const Icon(Icons.movie, size: 50),
