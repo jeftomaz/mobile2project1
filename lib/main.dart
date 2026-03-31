@@ -7,6 +7,7 @@ import 'views/auth/forgot_password_view.dart';
 import 'viewmodels/movie_viewmodel.dart';
 import 'views/home/home_view.dart';
 import 'views/specific/add_movie_view.dart';
+import 'views/about/about_view.dart';
 
 void main() {
   runApp(
@@ -26,7 +27,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mobile 2 Project',
+      title: 'CineLog',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
@@ -39,6 +40,7 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterView(),
         '/forgot-password': (context) => const ForgotPasswordView(),
         '/movie/add': (context) => const AddMovieView(),
+        '/about': (context) => const AboutView(),
       },
     );
   }
