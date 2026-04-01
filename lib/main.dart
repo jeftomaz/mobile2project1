@@ -8,7 +8,7 @@ import 'viewmodels/movie_viewmodel.dart';
 import 'views/home/home_view.dart';
 import 'views/specific/add_movie_view.dart';
 import 'views/about/about_view.dart';
-import 'views/specific/movie_stats_view.dart';
+import 'views/specific/movie_search_view.dart';
 
 void main() {
   runApp(
@@ -42,6 +42,7 @@ class MyApp extends StatelessWidget {
         '/forgot-password': (context) => const ForgotPasswordView(),
         '/movie/add': (context) => const AddMovieView(),
         '/about': (context) => const AboutView(),
+        '/movie/search': (context) => const MovieSearchView(),
       },
     );
   }

@@ -65,6 +65,10 @@ class _HomeViewState extends State<HomeView> {
             icon: const Icon(Icons.info_outline),
             onPressed: () => Navigator.pushNamed(context, '/about'),
           ),
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => Navigator.pushNamed(context, '/movie/search'),
+          ),
         ],
       ),
       body: movies.isEmpty
@@ -77,7 +81,7 @@ class _HomeViewState extends State<HomeView> {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => MovieDetailView(movie: movie),
+                      builder: (_) => MovieDetailView(movieId: movie.id),
                     ),
                   ),
                   child: Card(

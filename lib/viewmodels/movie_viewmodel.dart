@@ -29,4 +29,10 @@ class MovieViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  List<Movie> searchMovies(String query) {
+    if (query.trim().isEmpty) return [];
+    final q = query.toLowerCase();
+    return _movies.where((m) => m.title.toLowerCase().contains(q)).toList();
+  }
 }

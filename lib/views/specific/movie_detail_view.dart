@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../models/movie.dart';
+import 'package:provider/provider.dart';
+import '../../viewmodels/movie_viewmodel.dart';
 
 class MovieDetailView extends StatelessWidget {
-  final Movie movie;
-  const MovieDetailView({super.key, required this.movie});
+  final String movieId;
+  const MovieDetailView({super.key, required this.movieId});
 
   @override
   Widget build(BuildContext context) {
+    final movie = context.watch<MovieViewModel>().movies.firstWhere(
+      (m) => m.id == movieId,
+    );
     return Scaffold(
       appBar: AppBar(title: Text(movie.title)),
       body: SingleChildScrollView(
