@@ -35,4 +35,27 @@ class MovieViewModel extends ChangeNotifier {
     final q = query.toLowerCase();
     return _movies.where((m) => m.title.toLowerCase().contains(q)).toList();
   }
+
+  final List<String> _genres = [
+    'Ação',
+    'Comédia',
+    'Drama',
+    'Terror',
+    'Ficção Científica',
+    'Animação',
+  ];
+
+  List<String> get genres => List.unmodifiable(_genres);
+
+  void addGenre(String genre) {
+    final g = genre.trim();
+    if (g.isEmpty || _genres.contains(g)) return;
+    _genres.add(g);
+    notifyListeners();
+  }
+
+  void removeGenre(String genre) {
+    _genres.remove(genre);
+    notifyListeners();
+  }
 }

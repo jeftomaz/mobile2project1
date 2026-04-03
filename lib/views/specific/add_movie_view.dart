@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-// import 'dart:io';
+import 'dart:typed_data';
 import '../../models/movie.dart';
 import '../../viewmodels/movie_viewmodel.dart';
-import 'dart:typed_data';
 
 class AddMovieView extends StatefulWidget {
   const AddMovieView({super.key});
@@ -18,15 +17,6 @@ class _AddMovieViewState extends State<AddMovieView> {
   final _yearController = TextEditingController();
   String? _selectedGenre;
   Uint8List? _coverBytes;
-
-  final List<String> _genres = [
-    'Ação',
-    'Comédia',
-    'Drama',
-    'Terror',
-    'Ficção Científica',
-    'Animação',
-  ];
 
   @override
   void dispose() {
@@ -60,7 +50,7 @@ class _AddMovieViewState extends State<AddMovieView> {
       title: title,
       year: year,
       genre: _selectedGenre!,
-      coverBytes: _coverBytes, // <-- aqui
+      coverBytes: _coverBytes,
     );
 
     context.read<MovieViewModel>().addMovie(movie);
@@ -69,13 +59,15 @@ class _AddMovieViewState extends State<AddMovieView> {
 
   @override
   Widget build(BuildContext context) {
+    // Lê os gêneros do ViewModel — reage automaticamente a adições/remoções
+    final genres = context.watch<MovieViewModel>().genres;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Adicionar Filme')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Preview da capa
             GestureDetector(
               onTap: _pickImage,
               child: Container(
@@ -122,15 +114,18 @@ class _AddMovieViewState extends State<AddMovieView> {
             DropdownButtonFormField<String>(
               value: _selectedGenre,
               hint: const Text('Selecione o Gênero'),
-              items: _genres
+              items: genres
                   .map((g) => DropdownMenuItem(value: g, child: Text(g)))
                   .toList(),
               onChanged: (value) => setState(() => _selectedGenre = value),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => _handleSave(context),
-              child: const Text('Salvar'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _handleSave(context),
+                child: const Text('Salvar'),
+              ),
             ),
           ],
         ),

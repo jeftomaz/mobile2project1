@@ -19,19 +19,9 @@ class _EditMovieViewState extends State<EditMovieView> {
   String? _selectedGenre;
   Uint8List? _coverBytes;
 
-  final List<String> _genres = [
-    'Ação',
-    'Comédia',
-    'Drama',
-    'Terror',
-    'Ficção Científica',
-    'Animação',
-  ];
-
   @override
   void initState() {
     super.initState();
-    // Pré-preenche os campos com os dados do filme existente
     _titleController = TextEditingController(text: widget.movie.title);
     _yearController = TextEditingController(text: widget.movie.year.toString());
     _selectedGenre = widget.movie.genre;
@@ -65,7 +55,6 @@ class _EditMovieViewState extends State<EditMovieView> {
       return;
     }
 
-    // Cria um Movie atualizado mantendo o mesmo id e o status watched
     final updated = Movie(
       id: widget.movie.id,
       title: title,
@@ -86,13 +75,21 @@ class _EditMovieViewState extends State<EditMovieView> {
 
   @override
   Widget build(BuildContext context) {
+    // Lê os gêneros do ViewModel — reage automaticamente a adições/remoções
+    final genres = context.watch<MovieViewModel>().genres;
+
+    // Garante que o gênero atual do filme ainda existe na lista.
+    // Se foi removido, reseta a seleção para evitar erro no Dropdown.
+    if (_selectedGenre != null && !genres.contains(_selectedGenre)) {
+      _selectedGenre = null;
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Editar Filme')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Preview / seleção de capa
             GestureDetector(
               onTap: _pickImage,
               child: Container(
@@ -139,7 +136,7 @@ class _EditMovieViewState extends State<EditMovieView> {
             DropdownButtonFormField<String>(
               value: _selectedGenre,
               hint: const Text('Selecione o Gênero'),
-              items: _genres
+              items: genres
                   .map((g) => DropdownMenuItem(value: g, child: Text(g)))
                   .toList(),
               onChanged: (value) => setState(() => _selectedGenre = value),

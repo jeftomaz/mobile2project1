@@ -4,17 +4,19 @@ class AuthViewModel extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  bool _isValidEmail(String email) =>
+      RegExp(r'^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+
   // RF001 - Login
   Future<bool> login(String email, String password) async {
     if (email.isEmpty || password.isEmpty) {
       throw Exception("Preencha todos os campos.");
     }
-    if (!email.contains('@')) {
+    if (!_isValidEmail(email)) {
       throw Exception("E-mail inválido.");
     }
 
     _setLoading(true);
-    // Simulação de delay para autenticação
     await Future.delayed(const Duration(seconds: 2));
     _setLoading(false);
     return true;
@@ -28,8 +30,11 @@ class AuthViewModel extends ChangeNotifier {
     required String password,
     required String confirmPassword,
   }) async {
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+    if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
       throw Exception("Campos obrigatórios não preenchidos.");
+    }
+    if (!_isValidEmail(email)) {
+      throw Exception("E-mail inválido.");
     }
     if (password != confirmPassword) {
       throw Exception("As senhas não conferem.");
@@ -40,10 +45,13 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading(false);
   }
 
-  // RF003 - Recuperação de Senha [cite: 45]
+  // RF003 - Recuperação de Senha
   Future<void> recoverPassword(String email) async {
-    if (email.isEmpty || !email.contains('@')) {
-      throw Exception("Informe um e-mail válido.");
+    if (email.isEmpty) {
+      throw Exception("Informe seu e-mail.");
+    }
+    if (!_isValidEmail(email)) {
+      throw Exception("E-mail inválido.");
     }
 
     _setLoading(true);
@@ -53,6 +61,6 @@ class AuthViewModel extends ChangeNotifier {
 
   void _setLoading(bool value) {
     _isLoading = value;
-    notifyListeners(); // Notifica a View para mostrar/esconder o loading
+    notifyListeners();
   }
 }

@@ -42,6 +42,81 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  void _showGenreManager(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        // context.watch dentro do builder do Dialog para reagir a mudanças
+        final movieVM = context.watch<MovieViewModel>();
+        return AlertDialog(
+          title: const Text('Gerenciar Gêneros'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        decoration: const InputDecoration(
+                          labelText: 'Novo gênero',
+                        ),
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      tooltip: 'Adicionar',
+                      onPressed: () {
+                        context.read<MovieViewModel>().addGenre(
+                          controller.text,
+                        );
+                        controller.clear();
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Lista rolável para não estourar o dialog com muitos gêneros
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: movieVM.genres
+                        .map(
+                          (g) => ListTile(
+                            dense: true,
+                            title: Text(g),
+                            trailing: IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                              ),
+                              tooltip: 'Remover',
+                              onPressed: () =>
+                                  context.read<MovieViewModel>().removeGenre(g),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fechar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildMovieList(BuildContext context) {
     final movieVM = context.watch<MovieViewModel>();
     final movies = _showOnlyUnwatched
@@ -60,6 +135,11 @@ class _HomeViewState extends State<HomeView> {
             tooltip: 'Apenas não assistidos',
             onPressed: () =>
                 setState(() => _showOnlyUnwatched = !_showOnlyUnwatched),
+          ),
+          IconButton(
+            icon: const Icon(Icons.category_outlined),
+            tooltip: 'Gerenciar Gêneros',
+            onPressed: () => _showGenreManager(context),
           ),
           IconButton(
             icon: const Icon(Icons.info_outline),

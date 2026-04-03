@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../models/movie.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/movie_viewmodel.dart';
 
