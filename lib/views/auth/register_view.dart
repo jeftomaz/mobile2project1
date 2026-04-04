@@ -93,7 +93,7 @@ class _RegisterViewState extends State<RegisterView> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Cadastro realizado com sucesso!')),
         );
-        Navigator.pop(context); // Volta para o Login
+        Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
       if (context.mounted) {
