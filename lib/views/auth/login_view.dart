@@ -25,88 +25,56 @@ class _LoginViewState extends State<LoginView> {
     final authVM = context.watch<AuthViewModel>();
 
     return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    'assets/images/framy_logo.png',
-                    height: 400,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(labelText: 'Senha'),
-                    obscureText: true,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  const SizedBox(height: 28),
-                  authVM.isLoading
-                      ? const CircularProgressIndicator()
-                      : ElevatedButton(
-                          onPressed: () => _handleLogin(context, authVM),
-                          child: const Text('Entrar'),
-                        ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pushNamed(context, '/register'),
-                        child: const Text('Criar conta'),
-                      ),
-                      const Text('·', style: TextStyle(color: Colors.white38)),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/forgot-password'),
-                        child: const Text('Esqueceu a senha?'),
-                      ),
-                    ],
-                  ),
-                ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Image.asset(
+                'assets/images/framy_logo.png',
+                height: 220,
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'E-mail',
-                  ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'E-mail',
+                  border: OutlineInputBorder(),
                 ),
-                TextField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Senha',
-                  ),
-                  obscureText: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                decoration: const InputDecoration(
+                  labelText: 'Senha',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 20),
-                authVM.isLoading
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
+                obscureText: true,
+              ),
+              const SizedBox(height: 20),
+              authVM.isLoading
+                  ? const CircularProgressIndicator()
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
                         onPressed: () => _handleLogin(context, authVM),
-                        child: const Text('Entrar'), // RF001
+                        child: const Text('Entrar'),
                       ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/register'),
-                  child: const Text('Cadastrar Usuário'),
-                ),
-                TextButton(
-                  onPressed: () =>
-                      Navigator.pushNamed(context, '/forgot-password'),
-                  child: const Text('Esqueceu a senha?'),
-                ),
-              ],
-            ),
+                    ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/register'),
+                child: const Text('Cadastrar Usuário'),
+              ),
+              TextButton(
+                onPressed: () =>
+                    Navigator.pushNamed(context, '/forgot-password'),
+                child: const Text('Esqueceu a senha?'),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
