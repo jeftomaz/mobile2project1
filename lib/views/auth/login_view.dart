@@ -22,57 +22,67 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    // Escuta as mudanças no ViewModel
     final authVM = context.watch<AuthViewModel>();
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const FlutterLogo(size: 100), // RF001 - Logotipo
-            const SizedBox(height: 30),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'E-mail'), // RF001
+      body: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: Image.asset(
+                'assets/images/framy_logo.png',
+                height: 400, // RF001 - Logotipo
+              ),
             ),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Senha'), // RF001
-              obscureText: true,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'E-mail',
+                  ), // RF001
+                ),
+                TextField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Senha',
+                  ), // RF001
+                  obscureText: true,
+                ),
+                const SizedBox(height: 20),
+                authVM.isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: () => _handleLogin(context, authVM),
+                        child: const Text('Entrar'), // RF001
+                      ),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/register'),
+                  child: const Text('Cadastrar Usuário'),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/forgot-password'),
+                  child: const Text('Esqueceu a senha?'),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            authVM.isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: () => _handleLogin(context, authVM),
-                    child: const Text('Entrar'), // RF001
-                  ),
-            TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/register'),
-              child: const Text('Cadastrar Usuário'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
-              child: const Text('Esqueceu a senha?'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // Lógica de interação View -> ViewModel
   void _handleLogin(BuildContext context, AuthViewModel vm) async {
     try {
       await vm.login(_emailController.text, _passwordController.text);
-      // RF001 - Se sucesso, direciona para a tela principal
       if (context.mounted) {
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
-      // RF006 - Exibe erro em SnackBar ou Dialog
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
