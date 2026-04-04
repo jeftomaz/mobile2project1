@@ -8,9 +8,13 @@ class MovieDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final movie = context.watch<MovieViewModel>().movies.firstWhere(
-      (m) => m.id == movieId,
-    );
+    final movies = context.watch<MovieViewModel>().movies;
+    final movieIndex = movies.indexWhere((m) => m.id == movieId);
+    if (movieIndex == -1) {
+      return Scaffold(body: Center(child: Text('Filme não encontrado.')));
+    }
+    final movie = movies[movieIndex];
+
     return Scaffold(
       appBar: AppBar(title: Text(movie.title)),
       body: SingleChildScrollView(

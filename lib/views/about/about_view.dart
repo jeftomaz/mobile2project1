@@ -10,10 +10,10 @@ class AboutView extends StatelessWidget {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const FlutterLogo(size: 80),
-            const SizedBox(height: 20),
+            Image.asset('assets/images/framy_logo.png', height: 120),
+            const SizedBox(height: 16),
             Text(
               'Framy',
               style: Theme.of(

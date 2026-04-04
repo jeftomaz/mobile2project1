@@ -24,20 +24,23 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Recuperar Senha')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Image.asset('assets/images/framy_logo.png', height: 100),
+            const SizedBox(height: 32),
             const Text(
               'Informe seu e-mail para receber as instruções de recuperação.',
               textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 24),
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'E-mail'),
               keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 24),
             authVM.isLoading

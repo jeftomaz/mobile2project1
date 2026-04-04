@@ -9,8 +9,6 @@ class RegisterView extends StatefulWidget {
   State<RegisterView> createState() => _RegisterViewState();
 }
 
-// StatefulWidget e Ciclo de Vida
-
 class _RegisterViewState extends State<RegisterView> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -28,8 +26,6 @@ class _RegisterViewState extends State<RegisterView> {
     super.dispose();
   }
 
-  // Build e Observador de Contexto
-
   @override
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
@@ -37,35 +33,47 @@ class _RegisterViewState extends State<RegisterView> {
     return Scaffold(
       appBar: AppBar(title: const Text('Cadastro')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
         child: Column(
           children: [
+            const SizedBox(height: 8),
+            Image.asset('assets/images/framy_logo.png', height: 100),
+            const SizedBox(height: 28),
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Nome'),
               textCapitalization: TextCapitalization.words,
+              style: const TextStyle(color: Colors.white),
             ),
+            const SizedBox(height: 16),
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'E-mail'),
               keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(color: Colors.white),
             ),
+            const SizedBox(height: 16),
             TextField(
               controller: _phoneController,
               decoration: const InputDecoration(labelText: 'Telefone'),
               keyboardType: TextInputType.phone,
+              style: const TextStyle(color: Colors.white),
             ),
+            const SizedBox(height: 16),
             TextField(
               controller: _passwordController,
               decoration: const InputDecoration(labelText: 'Senha'),
               obscureText: true,
+              style: const TextStyle(color: Colors.white),
             ),
+            const SizedBox(height: 16),
             TextField(
               controller: _confirmPasswordController,
               decoration: const InputDecoration(labelText: 'Confirmar Senha'),
               obscureText: true,
+              style: const TextStyle(color: Colors.white),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             authVM.isLoading
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
@@ -77,8 +85,6 @@ class _RegisterViewState extends State<RegisterView> {
       ),
     );
   }
-
-  // Chamda do ViewModel para exibição de erros
 
   void _handleRegister(BuildContext context, AuthViewModel vm) async {
     try {
