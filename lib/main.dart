@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'firebase_options.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'views/auth/login_view.dart';
 import 'views/auth/register_view.dart';
@@ -10,7 +12,9 @@ import 'views/specific/add_movie_view.dart';
 import 'views/about/about_view.dart';
 import 'views/specific/movie_search_view.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
     MultiProvider(
       providers: [
