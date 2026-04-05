@@ -5,6 +5,7 @@ import '../specific/edit_movie_view.dart';
 import '../specific/movie_detail_view.dart';
 import '../specific/movie_stats_view.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../specific/account_view.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -334,9 +335,11 @@ class _HomeViewState extends State<HomeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _currentIndex == 0
-          ? _buildMovieList(context)
-          : const MovieStatsView(),
+      body: [
+        _buildMovieList(context),
+        const MovieStatsView(),
+        const AccountView(),
+      ][_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -350,6 +353,11 @@ class _HomeViewState extends State<HomeView> {
             icon: Icon(Icons.bar_chart_outlined),
             activeIcon: Icon(Icons.bar_chart),
             label: 'Estatísticas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Minha Conta',
           ),
         ],
       ),
