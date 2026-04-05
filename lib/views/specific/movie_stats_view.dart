@@ -22,7 +22,7 @@ class MovieStatsView extends StatelessWidget {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     final body = Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       child: total == 0
           ? const Center(child: Text('Nenhum filme cadastrado ainda.'))
           : Column(
@@ -91,8 +91,34 @@ class MovieStatsView extends StatelessWidget {
     if (embedded) return body;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Estatísticas')),
-      body: body,
+      appBar: AppBar(
+        title: const Text('Estatísticas'),
+        actions: [
+          PopupMenuButton<String>( // 👈 novo menu
+            onSelected: (value) {
+              Navigator.pushNamed(context, '/about');
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'about',
+                child: ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('Sobre'),
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'logout',
+                child: ListTile(
+                  leading: Icon(Icons.logout),
+                  title: Text('Sair'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: SafeArea(child: body),
     );
   }
 }

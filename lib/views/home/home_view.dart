@@ -16,6 +16,10 @@ class _HomeViewState extends State<HomeView> {
   int _currentIndex = 0;
   bool _showOnlyUnwatched = false;
 
+  void _handleLogout(BuildContext context) {
+    // implementar função para sair da conta
+  }
+
   void _confirmDelete(BuildContext context, String id, String title) {
     showDialog(
       context: context,
@@ -121,7 +125,12 @@ class _HomeViewState extends State<HomeView> {
     final movieVM = context.watch<MovieViewModel>();
     final movies = _showOnlyUnwatched
         ? movieVM.movies.where((m) => !m.watched).toList()
-        : movieVM.movies;
+        : List.of(movieVM.movies);
+    
+    movies.sort((a, b) {
+      if (a.watched == b.watched) return 0;
+      return a.watched ? 1 : -1;
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -137,17 +146,44 @@ class _HomeViewState extends State<HomeView> {
                 setState(() => _showOnlyUnwatched = !_showOnlyUnwatched),
           ),
           IconButton(
-            icon: const Icon(Icons.category_outlined),
-            tooltip: 'Gerenciar Gêneros',
-            onPressed: () => _showGenreManager(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () => Navigator.pushNamed(context, '/about'),
-          ),
-          IconButton(
             icon: const Icon(Icons.search),
             onPressed: () => Navigator.pushNamed(context, '/movie/search'),
+          ),
+          PopupMenuButton<String>( // 👈 novo menu
+            onSelected: (value) {
+              switch (value) {
+                case 'genres':
+                  _showGenreManager(context);
+                  break;
+                case 'about':
+                  Navigator.pushNamed(context, '/about');
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'genres',
+                child: ListTile(
+                  leading: Icon(Icons.category_outlined),
+                  title: Text('Gerenciar Gêneros'),
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'about',
+                child: ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('Sobre'),
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'logout',
+                child: ListTile(
+                  leading: Icon(Icons.logout),
+                  title: Text('Sair'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -276,7 +312,7 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       body: _currentIndex == 0
           ? _buildMovieList(context)
-          : const MovieStatsView(embedded: true),
+          : const MovieStatsView(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
