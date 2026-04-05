@@ -4,6 +4,7 @@ import '../../viewmodels/movie_viewmodel.dart';
 import '../specific/edit_movie_view.dart';
 import '../specific/movie_detail_view.dart';
 import '../specific/movie_stats_view.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -16,8 +17,28 @@ class _HomeViewState extends State<HomeView> {
   int _currentIndex = 0;
   bool _showOnlyUnwatched = false;
 
-  void _handleLogout(BuildContext context) {
-    // implementar função para sair da conta
+  void _handleLogout(BuildContext context) async {
+    final authVM = context.read<AuthViewModel>();
+    final movieVM = context.read<MovieViewModel>();
+
+    try {
+      await authVM.logout();
+      movieVM.clearCurrentUser();
+
+      if (!context.mounted) return;
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/',
+        (route) => false,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao sair da conta.')),
+      );
+    }
   }
 
   void _confirmDelete(BuildContext context, String id, String title) {
@@ -157,6 +178,9 @@ class _HomeViewState extends State<HomeView> {
                   break;
                 case 'about':
                   Navigator.pushNamed(context, '/about');
+                  break;
+                case 'logout':
+                  _handleLogout(context);
                   break;
               }
             },

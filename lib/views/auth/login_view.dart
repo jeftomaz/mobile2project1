@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/movie_viewmodel.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -92,7 +93,10 @@ class _LoginViewState extends State<LoginView> {
   void _handleLogin(BuildContext context, AuthViewModel vm) async {
     try {
       await vm.login(_emailController.text, _passwordController.text);
-      if (context.mounted) {
+
+      final uid = vm.currentUser?.uid;
+      if (uid != null && context.mounted) {
+        context.read<MovieViewModel>().setCurrentUser(uid);
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {

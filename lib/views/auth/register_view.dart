@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/movie_viewmodel.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -87,6 +88,8 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   void _handleRegister(BuildContext context, AuthViewModel vm) async {
+    final movieVM = context.read<MovieViewModel>();
+
     try {
       await vm.register(
         name: _nameController.text,
@@ -95,12 +98,20 @@ class _RegisterViewState extends State<RegisterView> {
         password: _passwordController.text,
         confirmPassword: _confirmPasswordController.text,
       );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cadastro realizado com sucesso!')),
-        );
-        Navigator.pushReplacementNamed(context, '/home');
+
+      final uid = vm.currentUser?.uid;
+      if (uid == null) {
+        throw Exception('Usuário autenticado não encontrado após o cadastro.');
       }
+
+      movieVM.setCurrentUser(uid);
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cadastro realizado com sucesso!')),
+      );
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
