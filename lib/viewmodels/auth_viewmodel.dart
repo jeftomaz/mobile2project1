@@ -12,7 +12,7 @@ class AuthViewModel extends ChangeNotifier {
   bool _isValidEmail(String email) =>
       RegExp(r'^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
 
-  // RF001 - Login
+  // login
   Future<void> login(String email, String password) async {
     if (email.isEmpty || password.isEmpty) {
       throw Exception('Preencha todos os campos.');
@@ -34,7 +34,7 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // RF002 - Cadastro
+  // cadastro
   Future<void> register({
     required String name,
     required String email,
@@ -66,7 +66,7 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // RF003 - Recuperação de Senha
+  // recuperação de Senha
   Future<void> recoverPassword(String email) async {
     if (email.isEmpty) {
       throw Exception('Informe seu e-mail.');
