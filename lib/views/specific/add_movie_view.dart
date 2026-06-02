@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:typed_data';
 import '../../models/movie.dart';
 import '../../viewmodels/movie_viewmodel.dart';
+import '../../viewmodels/genre_viewmodel.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 
 class AddMovieView extends StatefulWidget {
   const AddMovieView({super.key});
@@ -15,26 +15,66 @@ class AddMovieView extends StatefulWidget {
 class _AddMovieViewState extends State<AddMovieView> {
   final _titleController = TextEditingController();
   final _yearController = TextEditingController();
+  final _searchController = TextEditingController();
   String? _selectedGenre;
-  Uint8List? _coverBytes;
+  String? _posterUrl;
+  bool _isSearching = false;
 
   @override
   void dispose() {
     _titleController.dispose();
     _yearController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      final bytes = await picked.readAsBytes();
-      setState(() => _coverBytes = bytes);
+  Future<void> _searchOmdb(BuildContext context) async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+
+    final movieVM = context.read<MovieViewModel>();
+    if (!movieVM.omdbConfigured) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Chave da OMDb não configurada. Consulte lib/services/omdb_service.dart.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSearching = true);
+    try {
+      final result = await movieVM.searchOmdb(query);
+      if (!context.mounted) return;
+
+      if (result == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nenhum filme encontrado na OMDb.')),
+        );
+        return;
+      }
+
+      final genreVM = context.read<GenreViewModel>();
+      final knownGenres = genreVM.genreNames;
+      final matchedGenre = knownGenres.firstWhere(
+        (g) => g.toLowerCase() == result.genre.toLowerCase(),
+        orElse: () => knownGenres.isNotEmpty ? knownGenres.first : result.genre,
+      );
+
+      setState(() {
+        _titleController.text = result.title;
+        _yearController.text = result.year.toString();
+        _selectedGenre = matchedGenre;
+        _posterUrl = result.posterUrl;
+      });
+    } finally {
+      setState(() => _isSearching = false);
     }
   }
 
-  void _handleSave(BuildContext context) {
+  Future<void> _handleSave(BuildContext context) async {
     final title = _titleController.text.trim();
     final year = int.tryParse(_yearController.text.trim());
 
@@ -45,22 +85,41 @@ class _AddMovieViewState extends State<AddMovieView> {
       return;
     }
 
+    final uid = context.read<AuthViewModel>().currentUser?.uid;
+    if (uid == null) return;
+
     final movie = Movie(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userId: uid,
       title: title,
       year: year,
       genre: _selectedGenre!,
-      coverBytes: _coverBytes,
+      posterUrl: _posterUrl,
     );
 
-    context.read<MovieViewModel>().addMovie(movie);
-    Navigator.pop(context);
+    try {
+      await context.read<MovieViewModel>().addMovie(movie);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Filme adicionado com sucesso!')),
+      );
+      Navigator.pop(context);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao salvar filme. Tente novamente.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Lê os gêneros do ViewModel — reage automaticamente a adições/remoções
-    final genres = context.watch<MovieViewModel>().genres;
+    final genres = context.watch<GenreViewModel>().genreNames;
+
+    // Reset selected genre if it was removed
+    if (_selectedGenre != null && !genres.contains(_selectedGenre)) {
+      _selectedGenre = null;
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Adicionar Filme')),
@@ -68,38 +127,52 @@ class _AddMovieViewState extends State<AddMovieView> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                height: 150,
-                width: 100,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
+            // Busca OMDb
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      labelText: 'Buscar na OMDb',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (_) => _searchOmdb(context),
+                  ),
                 ),
-                child: _coverBytes != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.memory(_coverBytes!, fit: BoxFit.cover),
+                const SizedBox(width: 8),
+                _isSearching
+                    ? const SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.add_photo_alternate,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
-                          Text(
-                            'Adicionar capa',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
+                    : IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () => _searchOmdb(context),
+                        tooltip: 'Buscar',
                       ),
-              ),
+              ],
             ),
             const SizedBox(height: 16),
+
+            // Capa
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: _posterUrl != null
+                  ? Image.network(
+                      _posterUrl!,
+                      height: 150,
+                      width: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stack) =>
+                          _posterPlaceholder(),
+                    )
+                  : _posterPlaceholder(),
+            ),
+            const SizedBox(height: 16),
+
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(labelText: 'Título'),
@@ -112,7 +185,8 @@ class _AddMovieViewState extends State<AddMovieView> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectedGenre,
+              key: ValueKey(_selectedGenre),
+              initialValue: _selectedGenre,
               hint: const Text('Selecione o Gênero'),
               items: genres
                   .map((g) => DropdownMenuItem(value: g, child: Text(g)))
@@ -132,4 +206,17 @@ class _AddMovieViewState extends State<AddMovieView> {
       ),
     );
   }
+
+  Widget _posterPlaceholder() => Container(
+    height: 150,
+    width: 100,
+    color: Colors.grey[800],
+    child: const Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_photo_alternate, size: 40, color: Colors.grey),
+        Text('Sem capa', style: TextStyle(color: Colors.grey, fontSize: 12)),
+      ],
+    ),
+  );
 }

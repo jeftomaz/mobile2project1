@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'repositories/auth_repository.dart';
+import 'repositories/movie_repository.dart';
+import 'repositories/genre_repository.dart';
+import 'repositories/review_repository.dart';
+import 'services/omdb_service.dart';
 import 'viewmodels/auth_viewmodel.dart';
+import 'viewmodels/movie_viewmodel.dart';
+import 'viewmodels/genre_viewmodel.dart';
 import 'views/auth/login_view.dart';
 import 'views/auth/register_view.dart';
 import 'views/auth/forgot_password_view.dart';
-import 'viewmodels/movie_viewmodel.dart';
 import 'views/home/home_view.dart';
 import 'views/specific/add_movie_view.dart';
 import 'views/about/about_view.dart';
@@ -18,8 +24,26 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthViewModel()),
-        ChangeNotifierProvider(create: (_) => MovieViewModel()),
+        // Repositories (stateless singletons)
+        Provider<AuthRepository>(create: (_) => AuthRepository()),
+        Provider<MovieRepository>(create: (_) => MovieRepository()),
+        Provider<GenreRepository>(create: (_) => GenreRepository()),
+        Provider<ReviewRepository>(create: (_) => ReviewRepository()),
+        Provider<OmdbService>(create: (_) => OmdbService()),
+
+        // ViewModels
+        ChangeNotifierProxyProvider<AuthRepository, AuthViewModel>(
+          create: (ctx) => AuthViewModel(ctx.read()),
+          update: (_, repo, vm) => vm ?? AuthViewModel(repo),
+        ),
+        ChangeNotifierProxyProvider2<MovieRepository, OmdbService, MovieViewModel>(
+          create: (ctx) => MovieViewModel(ctx.read(), ctx.read()),
+          update: (_, repo, omdb, vm) => vm ?? MovieViewModel(repo, omdb),
+        ),
+        ChangeNotifierProxyProvider<GenreRepository, GenreViewModel>(
+          create: (ctx) => GenreViewModel(ctx.read()),
+          update: (_, repo, vm) => vm ?? GenreViewModel(repo),
+        ),
       ],
       child: const MyApp(),
     ),

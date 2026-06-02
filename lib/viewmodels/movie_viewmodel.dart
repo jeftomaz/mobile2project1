@@ -1,126 +1,85 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/movie.dart';
+import '../repositories/movie_repository.dart';
+import '../services/omdb_service.dart';
 
 class MovieViewModel extends ChangeNotifier {
-  static const List<String> _defaultGenres = [
-    'Ação',
-    'Comédia',
-    'Drama',
-    'Terror',
-    'Ficção Científica',
-    'Animação',
-  ];
+  final MovieRepository _repo;
+  final OmdbService _omdb;
 
-  final Map<String, List<Movie>> _moviesByUser = {};
-  final Map<String, List<String>> _genresByUser = {};
+  MovieViewModel(this._repo, this._omdb);
+
   String? _currentUserId;
-
-  // métodos usuário
   String? get currentUserId => _currentUserId;
 
-  void setCurrentUser(String? userId) {
-    _currentUserId = userId;
+  List<Movie> _movies = [];
+  List<Movie> get movies => List.unmodifiable(_movies);
 
-    if (userId != null) {
-      _moviesByUser.putIfAbsent(userId, () => []);
-      _genresByUser.putIfAbsent(userId, () => List.of(_defaultGenres));
-    }
+  Stream<List<Movie>>? _moviesStream;
+  Stream<List<Movie>>? get moviesStream => _moviesStream;
 
-    notifyListeners();
+  StreamSubscription<List<Movie>>? _sub;
+
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
+
+  void setCurrentUser(String uid) {
+    if (_currentUserId == uid) return;
+    _currentUserId = uid;
+    _sub?.cancel();
+    _moviesStream = _repo.watchMovies(uid);
+    _sub = _moviesStream!.listen((list) {
+      _movies = list;
+      notifyListeners();
+    });
   }
 
   void clearCurrentUser() {
     _currentUserId = null;
+    _sub?.cancel();
+    _sub = null;
+    _moviesStream = null;
+    _movies = [];
     notifyListeners();
   }
 
-  // métodos filmes
-  List<Movie> get movies {
-    if (_currentUserId == null) return [];
-    return List.unmodifiable(_moviesByUser[_currentUserId!] ?? []);
-  }
-  
-  void addMovie(Movie movie) {
-    final userMovies = _requireCurrentUserMovies();
-    userMovies.add(movie);
-    notifyListeners();
-  }
-
-  void toggleWatched(String id) {
-    final userMovies = _requireCurrentUserMovies();
-    final movie = userMovies.firstWhere((m) => m.id == id);
-    movie.watched = !movie.watched;
-    notifyListeners();
-  }
-
-  void removeMovie(String id) {
-    final userMovies = _requireCurrentUserMovies();
-    userMovies.removeWhere((m) => m.id == id);
-    notifyListeners();
-  }
-
-  void updateMovie(Movie updated) {
-    final userMovies = _requireCurrentUserMovies();
-    final index = userMovies.indexWhere((m) => m.id == updated.id);
-
-    if (index != -1) {
-      userMovies[index] = updated;
-      notifyListeners();
+  Future<void> addMovie(Movie movie) async {
+    _setLoading(true);
+    try {
+      await _repo.addMovie(movie);
+    } finally {
+      _setLoading(false);
     }
   }
 
-  List<Movie> searchMovies(String query) {
-    if (query.trim().isEmpty) return [];
-
-    final q = query.toLowerCase();
-    final userMovies = _currentUserId == null
-        ? <Movie>[]
-        : (_moviesByUser[_currentUserId!] ?? []);
-
-    return userMovies
-        .where((m) => m.title.toLowerCase().contains(q))
-        .toList();
+  Future<void> updateMovie(Movie movie) async {
+    _setLoading(true);
+    try {
+      await _repo.updateMovie(movie);
+    } finally {
+      _setLoading(false);
+    }
   }
 
-  // métodos generos
-  List<String> get genres {
-    if (_currentUserId == null) return List.unmodifiable(_defaultGenres);
-    return List.unmodifiable(_genresByUser[_currentUserId!] ?? _defaultGenres);
-  }
+  Future<void> toggleWatched(String id, bool currentValue) =>
+      _repo.toggleWatched(id, currentValue);
 
-  void addGenre(String genre) {
-    final g = genre.trim();
-    if (g.isEmpty) return;
+  Future<void> deleteMovie(String id) => _repo.deleteMovie(id);
 
-    final userGenres = _requireCurrentUserGenres();
-    if (userGenres.contains(g)) return;
+  Future<OmdbResult?> searchOmdb(String title) =>
+      _omdb.searchByTitle(title);
 
-    userGenres.add(g);
+  bool get omdbConfigured => _omdb.isConfigured;
+
+  void _setLoading(bool value) {
+    _isLoading = value;
     notifyListeners();
   }
 
-  void removeGenre(String genre) {
-    final userGenres = _requireCurrentUserGenres();
-    userGenres.remove(genre);
-    notifyListeners();
-  }
-
-  // validações
-  List<Movie> _requireCurrentUserMovies() {
-    final userId = _currentUserId;
-    if (userId == null) {
-      throw StateError('Nenhum usuário autenticado para manipular filmes.');
-    }
-
-    return _moviesByUser.putIfAbsent(userId, () => []);
-  }
-
-  List<String> _requireCurrentUserGenres() {
-    final userId = _currentUserId;
-    if (userId == null) {
-      throw StateError('Nenhum usuário autenticado para manipular gêneros.');
-    }
-
-    return _genresByUser.putIfAbsent(userId, () => List.of(_defaultGenres));
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 }

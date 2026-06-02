@@ -1,32 +1,34 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../core/validators.dart';
+import '../models/user_profile.dart';
+import '../repositories/auth_repository.dart';
 
 class AuthViewModel extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final AuthRepository _repo;
+
+  AuthViewModel(this._repo);
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser => _repo.currentUser;
 
-  bool _isValidEmail(String email) =>
-      RegExp(r'^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+  UserProfile? _profile;
+  UserProfile? get profile => _profile;
 
-  // login
   Future<void> login(String email, String password) async {
     if (email.isEmpty || password.isEmpty) {
       throw Exception('Preencha todos os campos.');
     }
-    if (!_isValidEmail(email)) {
+    if (!Validators.isValidEmail(email)) {
       throw Exception('E-mail inválido.');
     }
 
     _setLoading(true);
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      await _repo.login(email, password);
+      await _loadProfile();
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapFirebaseError(e.code));
     } finally {
@@ -34,7 +36,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // cadastro
   Future<void> register({
     required String name,
     required String email,
@@ -45,20 +46,24 @@ class AuthViewModel extends ChangeNotifier {
     if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
       throw Exception('Preencha todos os campos obrigatórios.');
     }
-    if (!_isValidEmail(email)) {
+    if (!Validators.isValidEmail(email)) {
       throw Exception('E-mail inválido.');
     }
     if (password != confirmPassword) {
       throw Exception('As senhas não conferem.');
     }
+    final pwError = Validators.password(password);
+    if (pwError != null) throw Exception(pwError);
 
     _setLoading(true);
     try {
-      final credential = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
+      await _repo.register(
+        name: name,
+        email: email,
+        phone: phone,
         password: password,
       );
-      await credential.user?.updateDisplayName(name);
+      await _loadProfile();
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapFirebaseError(e.code));
     } finally {
@@ -66,18 +71,13 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // recuperação de Senha
   Future<void> recoverPassword(String email) async {
-    if (email.isEmpty) {
-      throw Exception('Informe seu e-mail.');
-    }
-    if (!_isValidEmail(email)) {
-      throw Exception('E-mail inválido.');
-    }
+    if (email.isEmpty) throw Exception('Informe seu e-mail.');
+    if (!Validators.isValidEmail(email)) throw Exception('E-mail inválido.');
 
     _setLoading(true);
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
+      await _repo.recoverPassword(email);
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapFirebaseError(e.code));
     } finally {
@@ -86,7 +86,15 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _auth.signOut();
+    await _repo.logout();
+    _profile = null;
+    notifyListeners();
+  }
+
+  Future<void> _loadProfile() async {
+    final uid = _repo.currentUser?.uid;
+    if (uid == null) return;
+    _profile = await _repo.getUserProfile(uid);
     notifyListeners();
   }
 

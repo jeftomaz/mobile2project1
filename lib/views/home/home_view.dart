@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/movie.dart';
 import '../../viewmodels/movie_viewmodel.dart';
+import '../../viewmodels/genre_viewmodel.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../specific/edit_movie_view.dart';
 import '../specific/movie_detail_view.dart';
 import '../specific/movie_stats_view.dart';
-import '../../viewmodels/auth_viewmodel.dart';
 import '../specific/account_view.dart';
 
 class HomeView extends StatefulWidget {
@@ -21,21 +23,17 @@ class _HomeViewState extends State<HomeView> {
   void _handleLogout(BuildContext context) async {
     final authVM = context.read<AuthViewModel>();
     final movieVM = context.read<MovieViewModel>();
+    final genreVM = context.read<GenreViewModel>();
 
     try {
       await authVM.logout();
       movieVM.clearCurrentUser();
+      genreVM.clearCurrentUser();
 
       if (!context.mounted) return;
-
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/',
-        (route) => false,
-      );
-    } catch (e) {
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    } catch (_) {
       if (!context.mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erro ao sair da conta.')),
       );
@@ -54,12 +52,22 @@ class _HomeViewState extends State<HomeView> {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
-              context.read<MovieViewModel>().removeMovie(id);
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Filme removido.')));
+              try {
+                await context.read<MovieViewModel>().deleteMovie(id);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Filme removido.')),
+                  );
+                }
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Erro ao remover filme.')),
+                  );
+                }
+              }
             },
             child: const Text('Remover', style: TextStyle(color: Colors.red)),
           ),
@@ -73,8 +81,7 @@ class _HomeViewState extends State<HomeView> {
     showDialog(
       context: context,
       builder: (context) {
-        // context.watch dentro do builder do Dialog para reagir a mudanças
-        final movieVM = context.watch<MovieViewModel>();
+        final genreVM = context.watch<GenreViewModel>();
         return AlertDialog(
           title: const Text('Gerenciar Gêneros'),
           content: SizedBox(
@@ -87,42 +94,34 @@ class _HomeViewState extends State<HomeView> {
                     Expanded(
                       child: TextField(
                         controller: controller,
-                        decoration: const InputDecoration(
-                          labelText: 'Novo gênero',
-                        ),
+                        decoration: const InputDecoration(labelText: 'Novo gênero'),
                         textCapitalization: TextCapitalization.sentences,
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.add),
                       tooltip: 'Adicionar',
-                      onPressed: () {
-                        context.read<MovieViewModel>().addGenre(
-                          controller.text,
-                        );
+                      onPressed: () async {
+                        await context.read<GenreViewModel>().addGenre(controller.text);
                         controller.clear();
                       },
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                // Lista rolável para não estourar o dialog com muitos gêneros
                 Flexible(
                   child: ListView(
                     shrinkWrap: true,
-                    children: movieVM.genres
+                    children: genreVM.genres
                         .map(
                           (g) => ListTile(
                             dense: true,
-                            title: Text(g),
+                            title: Text(g.name),
                             trailing: IconButton(
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                color: Colors.red,
-                              ),
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
                               tooltip: 'Remover',
                               onPressed: () =>
-                                  context.read<MovieViewModel>().removeGenre(g),
+                                  context.read<GenreViewModel>().removeGenre(g.id),
                             ),
                           ),
                         )
@@ -144,15 +143,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildMovieList(BuildContext context) {
-    final movieVM = context.watch<MovieViewModel>();
-    final movies = _showOnlyUnwatched
-        ? movieVM.movies.where((m) => !m.watched).toList()
-        : List.of(movieVM.movies);
-    
-    movies.sort((a, b) {
-      if (a.watched == b.watched) return 0;
-      return a.watched ? 1 : -1;
-    });
+    final movieVM = context.read<MovieViewModel>();
 
     return Scaffold(
       appBar: AppBar(
@@ -171,7 +162,7 @@ class _HomeViewState extends State<HomeView> {
             icon: const Icon(Icons.search),
             onPressed: () => Navigator.pushNamed(context, '/movie/search'),
           ),
-          PopupMenuButton<String>( // 👈 novo menu
+          PopupMenuButton<String>(
             onSelected: (value) {
               switch (value) {
                 case 'genres':
@@ -212,125 +203,141 @@ class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
-      body: movies.isEmpty
-          ? const Center(child: Text('Nenhum filme encontrado.'))
-          : ListView.builder(
-              itemCount: movies.length,
-              itemBuilder: (context, index) {
-                final movie = movies[index];
-                return InkWell(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MovieDetailView(movieId: movie.id),
-                    ),
+      body: StreamBuilder<List<Movie>>(
+        stream: movieVM.moviesStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Erro ao carregar filmes: ${snapshot.error}'),
+            );
+          }
+
+          var movies = snapshot.data ?? [];
+          if (_showOnlyUnwatched) {
+            movies = movies.where((m) => !m.watched).toList();
+          }
+          movies.sort((a, b) {
+            if (a.watched == b.watched) return 0;
+            return a.watched ? 1 : -1;
+          });
+
+          if (movies.isEmpty) {
+            return const Center(child: Text('Nenhum filme encontrado.'));
+          }
+
+          return ListView.builder(
+            itemCount: movies.length,
+            itemBuilder: (context, index) {
+              final movie = movies[index];
+              return InkWell(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MovieDetailView(movie: movie),
                   ),
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    child: Opacity(
-                      opacity: movie.watched ? 0.4 : 1.0,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: movie.coverBytes != null
-                                  ? Image.memory(
-                                      movie.coverBytes!,
-                                      width: 50,
-                                      height: 70,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Container(
-                                      width: 50,
-                                      height: 70,
-                                      color: Colors.grey[200],
-                                      child: const Icon(
-                                        Icons.movie,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    movie.title,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${movie.genre} • ${movie.year}',
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                movie.watched
-                                    ? Icons.check_circle
-                                    : Icons.check_circle_outline,
-                                color: movie.watched
-                                    ? Colors.green
-                                    : Colors.grey,
-                              ),
-                              onPressed: () => movieVM.toggleWatched(movie.id),
-                              tooltip: movie.watched
-                                  ? 'Marcar como não assistido'
-                                  : 'Marcar como assistido',
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined),
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => EditMovieView(movie: movie),
+                ),
+                child: Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Opacity(
+                    opacity: movie.watched ? 0.4 : 1.0,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: movie.posterUrl != null
+                                ? Image.network(
+                                    movie.posterUrl!,
+                                    width: 50,
+                                    height: 70,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stack) => _posterPlaceholder(),
+                                  )
+                                : _posterPlaceholder(),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  movie.title,
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              tooltip: 'Editar',
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${movie.genre} • ${movie.year}',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                color: Colors.red,
-                              ),
-                              onPressed: () => _confirmDelete(
-                                context,
-                                movie.id,
-                                movie.title,
-                              ),
-                              tooltip: 'Remover',
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              movie.watched
+                                  ? Icons.check_circle
+                                  : Icons.check_circle_outline,
+                              color: movie.watched ? Colors.green : Colors.grey,
                             ),
-                          ],
-                        ),
+                            onPressed: () =>
+                                movieVM.toggleWatched(movie.id, movie.watched),
+                            tooltip: movie.watched
+                                ? 'Marcar como não assistido'
+                                : 'Marcar como assistido',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditMovieView(movie: movie),
+                              ),
+                            ),
+                            tooltip: 'Editar',
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                            ),
+                            onPressed: () =>
+                                _confirmDelete(context, movie.id, movie.title),
+                            tooltip: 'Remover',
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.pushNamed(context, '/movie/add'),
         child: const Icon(Icons.add),
       ),
     );
   }
+
+  Widget _posterPlaceholder() => Container(
+    width: 50,
+    height: 70,
+    color: Colors.grey[800],
+    child: const Icon(Icons.movie, color: Colors.grey),
+  );
 
   @override
   Widget build(BuildContext context) {

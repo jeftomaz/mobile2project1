@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/movie_viewmodel.dart';
+import '../../viewmodels/genre_viewmodel.dart';
+import '../../core/validators.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -16,6 +18,10 @@ class _RegisterViewState extends State<RegisterView> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  String? _passwordHint;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   @override
   void dispose() {
@@ -63,15 +69,52 @@ class _RegisterViewState extends State<RegisterView> {
             const SizedBox(height: 16),
             TextField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Senha'),
-              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Senha',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+              obscureText: _obscurePassword,
               style: const TextStyle(color: Colors.white),
+              onChanged: (value) {
+                setState(() => _passwordHint = Validators.password(value));
+              },
             ),
+            if (_passwordHint != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 14, color: Colors.orange),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        _passwordHint!,
+                        style: const TextStyle(color: Colors.orange, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             TextField(
               controller: _confirmPasswordController,
-              decoration: const InputDecoration(labelText: 'Confirmar Senha'),
-              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Confirmar Senha',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
+              ),
+              obscureText: _obscureConfirm,
               style: const TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 28),
@@ -89,6 +132,7 @@ class _RegisterViewState extends State<RegisterView> {
 
   void _handleRegister(BuildContext context, AuthViewModel vm) async {
     final movieVM = context.read<MovieViewModel>();
+    final genreVM = context.read<GenreViewModel>();
 
     try {
       await vm.register(
@@ -105,18 +149,20 @@ class _RegisterViewState extends State<RegisterView> {
       }
 
       movieVM.setCurrentUser(uid);
+      genreVM.setCurrentUser(uid);
 
       if (!context.mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cadastro realizado com sucesso!')),
       );
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
       }
     }
   }

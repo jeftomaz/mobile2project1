@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/movie_viewmodel.dart';
+import '../../viewmodels/genre_viewmodel.dart';
 
 class AccountView extends StatelessWidget {
   const AccountView({super.key});
@@ -9,21 +10,17 @@ class AccountView extends StatelessWidget {
   void _handleLogout(BuildContext context) async {
     final authVM = context.read<AuthViewModel>();
     final movieVM = context.read<MovieViewModel>();
+    final genreVM = context.read<GenreViewModel>();
 
     try {
       await authVM.logout();
       movieVM.clearCurrentUser();
+      genreVM.clearCurrentUser();
 
       if (!context.mounted) return;
-
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/',
-        (route) => false,
-      );
-    } catch (e) {
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    } catch (_) {
       if (!context.mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erro ao sair da conta.')),
       );
@@ -34,13 +31,14 @@ class AccountView extends StatelessWidget {
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
     final user = authVM.currentUser;
+    final profile = authVM.profile;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Minha Conta'),
         automaticallyImplyLeading: false,
         actions: [
-          PopupMenuButton<String>( // 👈 novo menu
+          PopupMenuButton<String>(
             onSelected: (value) {
               switch (value) {
                 case 'about':
@@ -73,45 +71,32 @@ class AccountView extends StatelessWidget {
       ),
       body: user == null
           ? const Center(
-              child: Text(
-                'Nenhum usuário autenticado.',
-                style: TextStyle(fontSize: 16),
-              ),
+              child: Text('Nenhum usuário autenticado.', style: TextStyle(fontSize: 16)),
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  // Avatar
                   const CircleAvatar(
                     radius: 55,
                     child: Icon(Icons.person, size: 60),
                   ),
-
                   const SizedBox(height: 20),
-
-                  // nome
                   Text(
-                    user.displayName ?? 'Usuário desconhecido',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    profile?.name ?? user.displayName ?? 'Usuário desconhecido',
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-
                   const SizedBox(height: 30),
-
-                  // dados
                   _InfoTile(
                     icon: Icons.email,
                     label: 'E-mail',
-                    value: user.email ?? '-',
+                    value: profile?.email ?? user.email ?? '-',
                   ),
                   const SizedBox(height: 16),
                   _InfoTile(
                     icon: Icons.phone,
                     label: 'Telefone',
-                    value: user.phoneNumber ?? 'Não informado',
+                    value: profile?.phone ?? 'Não informado',
                   ),
                 ],
               ),
@@ -149,18 +134,12 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
