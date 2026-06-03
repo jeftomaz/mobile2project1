@@ -30,6 +30,14 @@ class _MovieDetailViewState extends State<MovieDetailView> {
 
     setState(() => _isSaving = true);
     try {
+      final repo = context.read<ReviewRepository>();
+      if (await repo.hasReview(uid, widget.movie.id)) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Você já avaliou este filme.')),
+        );
+        return;
+      }
       final review = Review(
         id: '',
         userId: uid,
@@ -37,7 +45,7 @@ class _MovieDetailViewState extends State<MovieDetailView> {
         rating: _selectedRating,
         comment: _commentController.text.trim(),
       );
-      await context.read<ReviewRepository>().addReview(review);
+      await repo.addReview(review);
       if (!context.mounted) return;
       _commentController.clear();
       setState(() => _selectedRating = 5);
@@ -125,6 +133,15 @@ class _MovieDetailViewState extends State<MovieDetailView> {
                   return const Padding(
                     padding: EdgeInsets.all(16),
                     child: CircularProgressIndicator(),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'Erro ao carregar avaliações.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   );
                 }
                 final reviews = snapshot.data ?? [];
@@ -215,6 +232,10 @@ class _ReviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final d = review.createdAt;
+    final date =
+        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -223,14 +244,21 @@ class _ReviewTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              children: List.generate(
-                5,
-                (i) => Icon(
-                  i < review.rating ? Icons.star : Icons.star_border,
-                  size: 16,
-                  color: Colors.amber,
+              children: [
+                ...List.generate(
+                  5,
+                  (i) => Icon(
+                    i < review.rating ? Icons.star : Icons.star_border,
+                    size: 16,
+                    color: Colors.amber,
+                  ),
                 ),
-              ),
+                const Spacer(),
+                Text(
+                  date,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                ),
+              ],
             ),
             if (review.comment.isNotEmpty) ...[
               const SizedBox(height: 4),

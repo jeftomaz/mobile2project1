@@ -8,9 +8,21 @@ class ReviewRepository {
     return _col
         .where('userId', isEqualTo: uid)
         .where('movieId', isEqualTo: movieId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map(Review.fromDoc).toList());
+        .map((snap) {
+          final list = snap.docs.map(Review.fromDoc).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
+  }
+
+  Future<bool> hasReview(String uid, String movieId) async {
+    final snap = await _col
+        .where('userId', isEqualTo: uid)
+        .where('movieId', isEqualTo: movieId)
+        .limit(1)
+        .get();
+    return snap.docs.isNotEmpty;
   }
 
   Future<void> addReview(Review review) => _col.add(review.toMap());

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/movie.dart';
-import '../../viewmodels/auth_viewmodel.dart';
-import '../../repositories/movie_repository.dart';
+import '../../viewmodels/movie_viewmodel.dart';
 import 'movie_detail_view.dart';
 
 class MovieSearchView extends StatefulWidget {
@@ -23,7 +22,14 @@ class _MovieSearchViewState extends State<MovieSearchView> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = context.read<AuthViewModel>().currentUser?.uid ?? '';
+    final allMovies = context.watch<MovieViewModel>().movies;
+    final query = _controller.text.toLowerCase().trim();
+
+    final List<Movie> results = query.isEmpty
+        ? []
+        : allMovies
+            .where((m) => m.title.toLowerCase().contains(query))
+            .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -34,7 +40,7 @@ class _MovieSearchViewState extends State<MovieSearchView> {
             hintText: 'Buscar por título...',
             border: InputBorder.none,
           ),
-          onChanged: (value) => setState(() {}),
+          onChanged: (_) => setState(() {}),
         ),
         actions: [
           if (_controller.text.isNotEmpty)
@@ -47,21 +53,11 @@ class _MovieSearchViewState extends State<MovieSearchView> {
             ),
         ],
       ),
-      body: _controller.text.isEmpty
+      body: query.isEmpty
           ? const Center(child: Text('Digite para buscar.'))
-          : StreamBuilder<List<Movie>>(
-              stream: context
-                  .read<MovieRepository>()
-                  .searchMovies(uid, _controller.text),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final results = snapshot.data ?? [];
-                if (results.isEmpty) {
-                  return const Center(child: Text('Nenhum filme encontrado.'));
-                }
-                return ListView.builder(
+          : results.isEmpty
+              ? const Center(child: Text('Nenhum filme encontrado.'))
+              : ListView.builder(
                   itemCount: results.length,
                   itemBuilder: (context, index) {
                     final movie = results[index];
@@ -74,7 +70,7 @@ class _MovieSearchViewState extends State<MovieSearchView> {
                                 width: 40,
                                 height: 56,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stack) =>
+                                errorBuilder: (_, _, _) =>
                                     const Icon(Icons.movie),
                               ),
                             )
@@ -85,7 +81,8 @@ class _MovieSearchViewState extends State<MovieSearchView> {
                         movie.watched
                             ? Icons.check_circle
                             : Icons.check_circle_outline,
-                        color: movie.watched ? Colors.green : Colors.grey,
+                        color:
+                            movie.watched ? Colors.green : Colors.grey,
                       ),
                       onTap: () => Navigator.push(
                         context,
@@ -95,9 +92,7 @@ class _MovieSearchViewState extends State<MovieSearchView> {
                       ),
                     );
                   },
-                );
-              },
-            ),
+                ),
     );
   }
 }

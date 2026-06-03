@@ -30,14 +30,19 @@ class GenreViewModel extends ChangeNotifier {
     _currentUserId = uid;
     _seeded = false;
     _sub?.cancel();
-    _sub = _repo.watchGenres(uid).listen((list) {
-      if (list.isEmpty && !_seeded) {
-        _seeded = true;
-        _seedDefaultGenres(uid);
-      }
-      _genres = list;
-      notifyListeners();
-    });
+    _sub = _repo.watchGenres(uid).listen(
+      (list) {
+        if (list.isEmpty && !_seeded) {
+          _seeded = true;
+          _seedDefaultGenres(uid);
+        }
+        _genres = list;
+        notifyListeners();
+      },
+      onError: (e) {
+        debugPrint('GenreViewModel stream error: $e');
+      },
+    );
   }
 
   void clearCurrentUser() {

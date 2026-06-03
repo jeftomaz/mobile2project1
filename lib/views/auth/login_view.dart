@@ -17,6 +17,20 @@ class _LoginViewState extends State<LoginView> {
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+    _restoreSession();
+  }
+
+  void _restoreSession() async {
+    final user = await context.read<AuthViewModel>().authStateChanges.first;
+    if (!mounted || user == null) return;
+    context.read<MovieViewModel>().setCurrentUser(user.uid);
+    context.read<GenreViewModel>().setCurrentUser(user.uid);
+    Navigator.pushReplacementNamed(context, '/home');
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();

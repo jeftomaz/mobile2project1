@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/genre.dart';
 import '../../models/movie.dart';
 import '../../viewmodels/movie_viewmodel.dart';
 import '../../viewmodels/genre_viewmodel.dart';
@@ -77,74 +78,13 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _showGenreManager(BuildContext context) {
-    final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) {
-        final genreVM = context.watch<GenreViewModel>();
-        return AlertDialog(
-          title: const Text('Gerenciar Gêneros'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: controller,
-                        decoration: const InputDecoration(labelText: 'Novo gênero'),
-                        textCapitalization: TextCapitalization.sentences,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add),
-                      tooltip: 'Adicionar',
-                      onPressed: () async {
-                        await context.read<GenreViewModel>().addGenre(controller.text);
-                        controller.clear();
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Flexible(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: genreVM.genres
-                        .map(
-                          (g) => ListTile(
-                            dense: true,
-                            title: Text(g.name),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.red),
-                              tooltip: 'Remover',
-                              onPressed: () =>
-                                  context.read<GenreViewModel>().removeGenre(g.id),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Fechar'),
-            ),
-          ],
-        );
-      },
+      builder: (_) => const _GenreManagerDialog(),
     );
   }
 
   Widget _buildMovieList(BuildContext context) {
-    final movieVM = context.read<MovieViewModel>();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Meus Filmes'),
@@ -203,19 +143,13 @@ class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
-      body: StreamBuilder<List<Movie>>(
-        stream: movieVM.moviesStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: Consumer<MovieViewModel>(
+        builder: (context, movieVM, _) {
+          if (!movieVM.isStreamLoaded) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Erro ao carregar filmes: ${snapshot.error}'),
-            );
-          }
 
-          var movies = snapshot.data ?? [];
+          var movies = List<Movie>.from(movieVM.movies);
           if (_showOnlyUnwatched) {
             movies = movies.where((m) => !m.watched).toList();
           }
@@ -258,7 +192,8 @@ class _HomeViewState extends State<HomeView> {
                                     width: 50,
                                     height: 70,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stack) => _posterPlaceholder(),
+                                    errorBuilder: (context, error, stack) =>
+                                        _posterPlaceholder(),
                                   )
                                 : _posterPlaceholder(),
                           ),
@@ -290,8 +225,8 @@ class _HomeViewState extends State<HomeView> {
                                   : Icons.check_circle_outline,
                               color: movie.watched ? Colors.green : Colors.grey,
                             ),
-                            onPressed: () =>
-                                movieVM.toggleWatched(movie.id, movie.watched),
+                            onPressed: () => movieVM.toggleWatched(
+                                movie.id, movie.watched),
                             tooltip: movie.watched
                                 ? 'Marcar como não assistido'
                                 : 'Marcar como assistido',
@@ -342,11 +277,14 @@ class _HomeViewState extends State<HomeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: [
-        _buildMovieList(context),
-        const MovieStatsView(),
-        const AccountView(),
-      ][_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          _buildMovieList(context),
+          const MovieStatsView(),
+          const AccountView(),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -368,6 +306,138 @@ class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GenreManagerDialog extends StatefulWidget {
+  const _GenreManagerDialog();
+
+  @override
+  State<_GenreManagerDialog> createState() => _GenreManagerDialogState();
+}
+
+class _GenreManagerDialogState extends State<_GenreManagerDialog> {
+  final _addController = TextEditingController();
+
+  @override
+  void dispose() {
+    _addController.dispose();
+    super.dispose();
+  }
+
+  void _showRenameDialog(Genre genre) {
+    final renameController = TextEditingController(text: genre.name);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Renomear Gênero'),
+        content: TextField(
+          controller: renameController,
+          decoration: const InputDecoration(labelText: 'Nome'),
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final name = renameController.text.trim();
+              if (name.isEmpty) return;
+              await context.read<GenreViewModel>().updateGenre(
+                    Genre(id: genre.id, userId: genre.userId, name: name),
+                  );
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final genreVM = context.watch<GenreViewModel>();
+
+    return AlertDialog(
+      title: const Text('Gerenciar Gêneros'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _addController,
+                    decoration: const InputDecoration(labelText: 'Novo gênero'),
+                    textCapitalization: TextCapitalization.sentences,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: 'Adicionar',
+                  onPressed: () async {
+                    await context.read<GenreViewModel>().addGenre(_addController.text);
+                    _addController.clear();
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (genreVM.genres.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Nenhum gênero cadastrado.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: genreVM.genres
+                      .map((g) => ListTile(
+                            dense: true,
+                            title: Text(g.name),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined),
+                                  tooltip: 'Renomear',
+                                  onPressed: () => _showRenameDialog(g),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red,
+                                  ),
+                                  tooltip: 'Remover',
+                                  onPressed: () =>
+                                      context.read<GenreViewModel>().removeGenre(g.id),
+                                ),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Fechar'),
+        ),
+      ],
     );
   }
 }

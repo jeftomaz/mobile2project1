@@ -14,6 +14,8 @@ class AuthViewModel extends ChangeNotifier {
 
   User? get currentUser => _repo.currentUser;
 
+  Stream<User?> get authStateChanges => _repo.authStateChanges;
+
   UserProfile? _profile;
   UserProfile? get profile => _profile;
 
@@ -31,6 +33,8 @@ class AuthViewModel extends ChangeNotifier {
       await _loadProfile();
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapFirebaseError(e.code));
+    } catch (_) {
+      throw Exception('Erro ao entrar. Verifique sua conexão e tente novamente.');
     } finally {
       _setLoading(false);
     }
@@ -66,6 +70,8 @@ class AuthViewModel extends ChangeNotifier {
       await _loadProfile();
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapFirebaseError(e.code));
+    } catch (_) {
+      throw Exception('Erro ao criar conta. Verifique sua conexão e tente novamente.');
     } finally {
       _setLoading(false);
     }
@@ -80,6 +86,8 @@ class AuthViewModel extends ChangeNotifier {
       await _repo.recoverPassword(email);
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapFirebaseError(e.code));
+    } catch (_) {
+      throw Exception('Erro ao enviar e-mail. Verifique sua conexão e tente novamente.');
     } finally {
       _setLoading(false);
     }
@@ -89,6 +97,23 @@ class AuthViewModel extends ChangeNotifier {
     await _repo.logout();
     _profile = null;
     notifyListeners();
+  }
+
+  Future<void> updateProfile({required String name, required String phone}) async {
+    final uid = _repo.currentUser?.uid;
+    if (uid == null) throw Exception('Usuário não autenticado.');
+
+    if (name.trim().isEmpty) throw Exception('O nome não pode estar vazio.');
+
+    _setLoading(true);
+    try {
+      await _repo.updateProfile(uid, name: name.trim(), phone: phone.trim());
+      await _loadProfile();
+    } catch (_) {
+      throw Exception('Erro ao atualizar perfil. Tente novamente.');
+    } finally {
+      _setLoading(false);
+    }
   }
 
   Future<void> _loadProfile() async {

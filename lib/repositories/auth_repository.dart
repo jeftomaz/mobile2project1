@@ -8,6 +8,8 @@ class AuthRepository {
 
   User? get currentUser => _auth.currentUser;
 
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
+
   Future<User> register({
     required String name,
     required String email,
@@ -47,5 +49,10 @@ class AuthRepository {
   Future<UserProfile?> getUserProfile(String uid) async {
     final doc = await _db.collection('usuarios').doc(uid).get();
     return doc.exists ? UserProfile.fromDoc(doc) : null;
+  }
+
+  Future<void> updateProfile(String uid, {required String name, required String phone}) async {
+    await _db.collection('usuarios').doc(uid).update({'name': name, 'phone': phone});
+    await _auth.currentUser?.updateDisplayName(name);
   }
 }

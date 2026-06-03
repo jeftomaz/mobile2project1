@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/movie.dart';
 import '../repositories/movie_repository.dart';
 import '../services/omdb_service.dart';
+export '../services/omdb_service.dart' show OmdbSearchItem, OmdbResult;
 
 class MovieViewModel extends ChangeNotifier {
   final MovieRepository _repo;
@@ -16,8 +17,8 @@ class MovieViewModel extends ChangeNotifier {
   List<Movie> _movies = [];
   List<Movie> get movies => List.unmodifiable(_movies);
 
-  Stream<List<Movie>>? _moviesStream;
-  Stream<List<Movie>>? get moviesStream => _moviesStream;
+  bool _streamLoaded = false;
+  bool get isStreamLoaded => _streamLoaded;
 
   StreamSubscription<List<Movie>>? _sub;
 
@@ -27,9 +28,10 @@ class MovieViewModel extends ChangeNotifier {
   void setCurrentUser(String uid) {
     if (_currentUserId == uid) return;
     _currentUserId = uid;
+    _streamLoaded = false;
     _sub?.cancel();
-    _moviesStream = _repo.watchMovies(uid);
-    _sub = _moviesStream!.listen((list) {
+    _sub = _repo.watchMovies(uid).listen((list) {
+      _streamLoaded = true;
       _movies = list;
       notifyListeners();
     });
@@ -37,9 +39,9 @@ class MovieViewModel extends ChangeNotifier {
 
   void clearCurrentUser() {
     _currentUserId = null;
+    _streamLoaded = false;
     _sub?.cancel();
     _sub = null;
-    _moviesStream = null;
     _movies = [];
     notifyListeners();
   }
@@ -67,8 +69,11 @@ class MovieViewModel extends ChangeNotifier {
 
   Future<void> deleteMovie(String id) => _repo.deleteMovie(id);
 
-  Future<OmdbResult?> searchOmdb(String title) =>
-      _omdb.searchByTitle(title);
+  Future<List<OmdbSearchItem>> searchOmdbCandidates(String title) =>
+      _omdb.searchCandidates(title);
+
+  Future<OmdbResult?> fetchOmdbById(String imdbId) =>
+      _omdb.fetchByImdbId(imdbId);
 
   bool get omdbConfigured => _omdb.isConfigured;
 

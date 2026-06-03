@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'repositories/auth_repository.dart';
@@ -17,9 +18,11 @@ import 'views/home/home_view.dart';
 import 'views/specific/add_movie_view.dart';
 import 'views/about/about_view.dart';
 import 'views/specific/movie_search_view.dart';
+import 'views/specific/edit_profile_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
     MultiProvider(
@@ -142,6 +145,7 @@ class MyApp extends StatelessWidget {
         '/movie/add': (context) => const AddMovieView(),
         '/about': (context) => const AboutView(),
         '/movie/search': (context) => const MovieSearchView(),
+        '/profile/edit': (context) => const EditProfileView(),
       },
     );
   }

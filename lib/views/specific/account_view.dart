@@ -38,6 +38,11 @@ class AccountView extends StatelessWidget {
         title: const Text('Minha Conta'),
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Editar perfil',
+            onPressed: () => Navigator.pushNamed(context, '/profile/edit'),
+          ),
           PopupMenuButton<String>(
             onSelected: (value) {
               switch (value) {
@@ -77,9 +82,14 @@ class AccountView extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 55,
-                    child: Icon(Icons.person, size: 60),
+                    backgroundImage: profile?.photoUrl != null
+                        ? NetworkImage(profile!.photoUrl!)
+                        : null,
+                    child: profile?.photoUrl == null
+                        ? const Icon(Icons.person, size: 60)
+                        : null,
                   ),
                   const SizedBox(height: 20),
                   Text(

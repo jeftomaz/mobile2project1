@@ -4,6 +4,7 @@ import '../../models/movie.dart';
 import '../../viewmodels/movie_viewmodel.dart';
 import '../../viewmodels/genre_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import 'omdb_picker_dialog.dart';
 
 class AddMovieView extends StatefulWidget {
   const AddMovieView({super.key});
@@ -37,7 +38,7 @@ class _AddMovieViewState extends State<AddMovieView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Chave da OMDb não configurada. Consulte lib/services/omdb_service.dart.',
+            'Chave da OMDb não configurada. Adicione OMDB_API_KEY no arquivo .env.',
           ),
         ),
       );
@@ -46,12 +47,36 @@ class _AddMovieViewState extends State<AddMovieView> {
 
     setState(() => _isSearching = true);
     try {
-      final result = await movieVM.searchOmdb(query);
+      final candidates = await movieVM.searchOmdbCandidates(query);
+      if (!context.mounted) return;
+
+      if (candidates.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nenhum filme encontrado na OMDb.')),
+        );
+        return;
+      }
+
+      OmdbSearchItem selected;
+      if (candidates.length == 1) {
+        selected = candidates.first;
+      } else {
+        setState(() => _isSearching = false);
+        final picked = await showDialog<OmdbSearchItem>(
+          context: context,
+          builder: (_) => OmdbPickerDialog(candidates: candidates),
+        );
+        if (picked == null || !context.mounted) return;
+        selected = picked;
+        setState(() => _isSearching = true);
+      }
+
+      final result = await movieVM.fetchOmdbById(selected.imdbId);
       if (!context.mounted) return;
 
       if (result == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nenhum filme encontrado na OMDb.')),
+          const SnackBar(content: Text('Não foi possível obter os detalhes do filme.')),
         );
         return;
       }
@@ -70,7 +95,7 @@ class _AddMovieViewState extends State<AddMovieView> {
         _posterUrl = result.posterUrl;
       });
     } finally {
-      setState(() => _isSearching = false);
+      if (mounted) setState(() => _isSearching = false);
     }
   }
 
@@ -89,7 +114,7 @@ class _AddMovieViewState extends State<AddMovieView> {
     if (uid == null) return;
 
     final movie = Movie(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: '',
       userId: uid,
       title: title,
       year: year,
@@ -116,9 +141,11 @@ class _AddMovieViewState extends State<AddMovieView> {
   Widget build(BuildContext context) {
     final genres = context.watch<GenreViewModel>().genreNames;
 
-    // Reset selected genre if it was removed
-    if (_selectedGenre != null && !genres.contains(_selectedGenre)) {
-      _selectedGenre = null;
+    if (_selectedGenre != null && genres.isNotEmpty && !genres.contains(_selectedGenre)) {
+      _selectedGenre = genres.firstWhere(
+        (g) => g.toLowerCase() == _selectedGenre!.toLowerCase(),
+        orElse: () => genres.first,
+      );
     }
 
     return Scaffold(

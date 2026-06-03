@@ -7,12 +7,15 @@ class MovieRepository {
   Stream<List<Movie>> watchMovies(String uid) {
     return _col
         .where('userId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map(Movie.fromDoc).toList());
+        .map((snap) {
+          final list = snap.docs.map(Movie.fromDoc).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
-  Future<void> addMovie(Movie movie) => _col.doc(movie.id).set(movie.toMap());
+  Future<void> addMovie(Movie movie) => _col.add(movie.toMap());
 
   Future<void> updateMovie(Movie movie) =>
       _col.doc(movie.id).update(movie.toMap());

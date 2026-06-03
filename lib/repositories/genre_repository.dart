@@ -7,9 +7,12 @@ class GenreRepository {
   Stream<List<Genre>> watchGenres(String uid) {
     return _col
         .where('userId', isEqualTo: uid)
-        .orderBy('name')
         .snapshots()
-        .map((snap) => snap.docs.map(Genre.fromDoc).toList());
+        .map((snap) {
+          final list = snap.docs.map(Genre.fromDoc).toList();
+          list.sort((a, b) => a.name.compareTo(b.name));
+          return list;
+        });
   }
 
   Future<void> addGenre(Genre genre) => _col.add(genre.toMap());
