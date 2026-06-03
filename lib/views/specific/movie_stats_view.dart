@@ -64,13 +64,7 @@ class MovieStatsView extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        LinearProgressIndicator(
-                          value: watchPercent,
-                          minHeight: 10,
-                          borderRadius: BorderRadius.circular(5),
-                          color: Colors.green,
-                          backgroundColor: Colors.white24,
-                        ),
+                        _AnimatedBar(value: watchPercent, minHeight: 10),
                         const SizedBox(height: 6),
                         Text(
                           '$watched de $total filme${total != 1 ? 's' : ''} assistido${watched != 1 ? 's' : ''}',
@@ -148,13 +142,7 @@ class MovieStatsView extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 4),
-                            LinearProgressIndicator(
-                              value: fraction,
-                              minHeight: 8,
-                              borderRadius: BorderRadius.circular(4),
-                              color: Colors.green,
-                              backgroundColor: Colors.white24,
-                            ),
+                            _AnimatedBar(value: fraction),
                             const SizedBox(height: 4),
                             Row(
                               children: [
@@ -237,6 +225,30 @@ class MovieStatsView extends StatelessWidget {
   }
 }
 
+/// Barra de progresso que anima de 0 até o valor real ao ser construída.
+class _AnimatedBar extends StatelessWidget {
+  final double value;
+  final double minHeight;
+
+  const _AnimatedBar({required this.value, this.minHeight = 8});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: value),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOut,
+      builder: (context, v, _) => LinearProgressIndicator(
+        value: v,
+        minHeight: minHeight,
+        borderRadius: BorderRadius.circular(minHeight / 2),
+        color: Colors.green,
+        backgroundColor: Colors.white24,
+      ),
+    );
+  }
+}
+
 class _StatCard extends StatelessWidget {
   final String label;
   final String value;
@@ -255,34 +267,55 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
         child: Row(
           children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(width: 16),
-            Expanded(child: Text(label)),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+            // Accent bar lateral com gradiente da cor do ícone
+            Container(
+              width: 4,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [color, color.withValues(alpha: 0.3)],
                 ),
-                if (subtitle != null)
-                  Text(
-                    subtitle!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: color.withValues(alpha: 0.7),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(icon, color: color, size: 32),
+                    const SizedBox(width: 16),
+                    Expanded(child: Text(label)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                        if (subtitle != null)
+                          Text(
+                            subtitle!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: color.withValues(alpha: 0.7),
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-              ],
+                  ],
+                ),
+              ),
             ),
           ],
         ),

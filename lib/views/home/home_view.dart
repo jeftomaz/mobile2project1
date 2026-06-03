@@ -5,6 +5,8 @@ import '../../models/movie.dart';
 import '../../viewmodels/movie_viewmodel.dart';
 import '../../viewmodels/genre_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../widgets/poster_placeholder.dart';
+import '../../widgets/watched_ribbon.dart';
 import '../specific/edit_movie_view.dart';
 import '../specific/movie_detail_view.dart';
 import '../specific/movie_stats_view.dart';
@@ -86,177 +88,13 @@ class _HomeViewState extends State<HomeView> {
 
   Widget _buildMovieList(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Meus Filmes'),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: Icon(
-              _showOnlyUnwatched ? Icons.filter_alt : Icons.filter_alt_outlined,
-            ),
-            tooltip: 'Apenas não assistidos',
-            onPressed: () =>
-                setState(() => _showOnlyUnwatched = !_showOnlyUnwatched),
-          ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => Navigator.pushNamed(context, '/movie/search'),
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'genres':
-                  _showGenreManager(context);
-                  break;
-                case 'about':
-                  Navigator.pushNamed(context, '/about');
-                  break;
-                case 'logout':
-                  _handleLogout(context);
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'genres',
-                child: ListTile(
-                  leading: Icon(Icons.category_outlined),
-                  title: Text('Gerenciar Gêneros'),
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'about',
-                child: ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Sobre'),
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'logout',
-                child: ListTile(
-                  leading: Icon(Icons.logout),
-                  title: Text('Sair'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
       body: Consumer<MovieViewModel>(
         builder: (context, movieVM, _) {
-          if (!movieVM.isStreamLoaded) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          var movies = List<Movie>.from(movieVM.movies);
-          if (_showOnlyUnwatched) {
-            movies = movies.where((m) => !m.watched).toList();
-          }
-          movies.sort((a, b) {
-            if (a.watched == b.watched) return 0;
-            return a.watched ? 1 : -1;
-          });
-
-          if (movies.isEmpty) {
-            return const Center(child: Text('Nenhum filme encontrado.'));
-          }
-
-          return ListView.builder(
-            itemCount: movies.length,
-            itemBuilder: (context, index) {
-              final movie = movies[index];
-              return InkWell(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => MovieDetailView(movie: movie),
-                  ),
-                ),
-                child: Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Opacity(
-                    opacity: movie.watched ? 0.4 : 1.0,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: movie.posterUrl != null
-                                ? Image.network(
-                                    movie.posterUrl!,
-                                    width: 50,
-                                    height: 70,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stack) =>
-                                        _posterPlaceholder(),
-                                  )
-                                : _posterPlaceholder(),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  movie.title,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${movie.genre} • ${movie.year}',
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              movie.watched
-                                  ? Icons.check_circle
-                                  : Icons.check_circle_outline,
-                              color: movie.watched ? Colors.green : Colors.grey,
-                            ),
-                            onPressed: () => movieVM.toggleWatched(
-                                movie.id, movie.watched),
-                            tooltip: movie.watched
-                                ? 'Marcar como não assistido'
-                                : 'Marcar como assistido',
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined),
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => EditMovieView(movie: movie),
-                              ),
-                            ),
-                            tooltip: 'Editar',
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.red,
-                            ),
-                            onPressed: () =>
-                                _confirmDelete(context, movie.id, movie.title),
-                            tooltip: 'Remover',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
+          return CustomScrollView(
+            slivers: [
+              _buildSliverAppBar(context),
+              _buildSliverBody(context, movieVM),
+            ],
           );
         },
       ),
@@ -267,12 +105,123 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _posterPlaceholder() => Container(
-    width: 50,
-    height: 70,
-    color: Colors.grey[800],
-    child: const Icon(Icons.movie, color: Colors.grey),
-  );
+  /// SliverAppBar colapsável: exibe o logo Framy quando expandido e colapsa
+  /// para apenas o título e as ações ao rolar a lista.
+  Widget _buildSliverAppBar(BuildContext context) {
+    return SliverAppBar(
+      pinned: true,
+      expandedHeight: 140,
+      automaticallyImplyLeading: false,
+      flexibleSpace: LayoutBuilder(
+        builder: (context, constraints) {
+          final topPadding = MediaQuery.of(context).padding.top;
+          final collapsed =
+              constraints.biggest.height <= kToolbarHeight + topPadding + 12;
+          return FlexibleSpaceBar(
+            centerTitle: true,
+            titlePadding: const EdgeInsets.only(bottom: 14),
+            // Logo quando expandido, título apenas quando colapsado.
+            title: AnimatedOpacity(
+              opacity: collapsed ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Text('Meus Filmes'),
+            ),
+            background: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Image.asset(
+                'assets/images/framy_logo.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+          );
+        },
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(
+            _showOnlyUnwatched ? Icons.filter_alt : Icons.filter_alt_outlined,
+          ),
+          tooltip: 'Apenas não assistidos',
+          onPressed: () =>
+              setState(() => _showOnlyUnwatched = !_showOnlyUnwatched),
+        ),
+        IconButton(
+          icon: const Icon(Icons.search),
+          onPressed: () => Navigator.pushNamed(context, '/movie/search'),
+        ),
+        PopupMenuButton<String>(
+          onSelected: (value) {
+            switch (value) {
+              case 'genres':
+                _showGenreManager(context);
+                break;
+              case 'about':
+                Navigator.pushNamed(context, '/about');
+                break;
+              case 'logout':
+                _handleLogout(context);
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'genres',
+              child: ListTile(
+                leading: Icon(Icons.category_outlined),
+                title: Text('Gerenciar Gêneros'),
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'about',
+              child: ListTile(
+                leading: Icon(Icons.info_outline),
+                title: Text('Sobre'),
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem(
+              value: 'logout',
+              child: ListTile(
+                leading: Icon(Icons.logout),
+                title: Text('Sair'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSliverBody(BuildContext context, MovieViewModel movieVM) {
+    if (!movieVM.isStreamLoaded) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    var movies = List<Movie>.from(movieVM.movies);
+    if (_showOnlyUnwatched) {
+      movies = movies.where((m) => !m.watched).toList();
+    }
+    movies.sort((a, b) {
+      if (a.watched == b.watched) return 0;
+      return a.watched ? 1 : -1;
+    });
+
+    if (movies.isEmpty) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: Text('Nenhum filme encontrado.')),
+      );
+    }
+
+    return SliverList.builder(
+      itemCount: movies.length,
+      itemBuilder: (context, index) =>
+          _MovieCard(movie: movies[index], onDelete: _confirmDelete),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -285,26 +234,158 @@ class _HomeViewState extends State<HomeView> {
           const AccountView(),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) =>
+            setState(() => _currentIndex = index),
+        destinations: const [
+          NavigationDestination(
             icon: Icon(Icons.movie_outlined),
-            activeIcon: Icon(Icons.movie),
+            selectedIcon: Icon(Icons.movie),
             label: 'Filmes',
           ),
-          BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),
-            activeIcon: Icon(Icons.bar_chart),
+            selectedIcon: Icon(Icons.bar_chart),
             label: 'Estatísticas',
           ),
-          BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
+            selectedIcon: Icon(Icons.person),
             label: 'Minha Conta',
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Card de filme no estilo pôster (Letterboxd): pôster em tamanho real à
+/// esquerda, gradiente escuro sobre a área de texto, ribbon "Assistido" e
+/// transição Hero ao abrir o detalhe.
+class _MovieCard extends StatelessWidget {
+  final Movie movie;
+  final void Function(BuildContext, String id, String title) onDelete;
+
+  const _MovieCard({required this.movie, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final movieVM = context.read<MovieViewModel>();
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => MovieDetailView(movie: movie)),
+        ),
+        child: SizedBox(
+          height: 130,
+          child: Stack(
+            children: [
+              Row(
+                children: [
+                  Hero(
+                    tag: 'poster-${movie.id}',
+                    child: movie.posterUrl != null
+                        ? Image.network(
+                            movie.posterUrl!,
+                            width: 88,
+                            height: 130,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stack) =>
+                                const PosterPlaceholder(width: 88, height: 130),
+                          )
+                        : const PosterPlaceholder(width: 88, height: 130),
+                  ),
+                  Expanded(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Color(0xFF0D0D0D), Color(0xFF1A1A1A)],
+                        ),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  movie.title,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(fontSize: 22, height: 1.0),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '${movie.genre} • ${movie.year}',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon: Icon(
+                                  movie.watched
+                                      ? Icons.check_circle
+                                      : Icons.check_circle_outline,
+                                  color:
+                                      movie.watched ? Colors.green : Colors.grey,
+                                ),
+                                onPressed: () => movieVM.toggleWatched(
+                                    movie.id, movie.watched),
+                                tooltip: movie.watched
+                                    ? 'Marcar como não assistido'
+                                    : 'Marcar como assistido',
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditMovieView(movie: movie),
+                                  ),
+                                ),
+                                tooltip: 'Editar',
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon: const Icon(Icons.delete_outline,
+                                    color: Colors.red),
+                                onPressed: () =>
+                                    onDelete(context, movie.id, movie.title),
+                                tooltip: 'Remover',
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (movie.watched) const WatchedRibbon(),
+            ],
+          ),
+        ),
       ),
     );
   }

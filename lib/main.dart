@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'repositories/auth_repository.dart';
@@ -61,6 +62,21 @@ class MyApp extends StatelessWidget {
   static const _surface = Color(0xFF1A1A1A);
   static const _accent = Color(0xFFF29C50);
 
+  /// Inter para o corpo, Bebas Neue (condensada, estilo pôster) para os títulos.
+  static TextTheme _cinematicTextTheme(TextTheme base) {
+    final body = GoogleFonts.interTextTheme(base);
+    final display = GoogleFonts.bebasNeueTextTheme(base);
+    return body.copyWith(
+      displayLarge: display.displayLarge,
+      displayMedium: display.displayMedium,
+      displaySmall: display.displaySmall,
+      headlineLarge: display.headlineLarge,
+      headlineMedium: display.headlineMedium,
+      headlineSmall: display.headlineSmall,
+      titleLarge: display.titleLarge?.copyWith(letterSpacing: 0.5),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -76,6 +92,7 @@ class MyApp extends StatelessWidget {
           onSecondary: Colors.black,
           onSurface: Colors.white,
         ),
+        textTheme: _cinematicTextTheme(ThemeData.dark().textTheme),
         scaffoldBackgroundColor: _background,
         appBarTheme: const AppBarTheme(
           backgroundColor: _background,

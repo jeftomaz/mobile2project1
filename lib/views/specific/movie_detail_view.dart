@@ -1,9 +1,11 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/movie.dart';
 import '../../models/review.dart';
 import '../../repositories/review_repository.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../widgets/poster_placeholder.dart';
 
 class MovieDetailView extends StatefulWidget {
   final Movie movie;
@@ -68,60 +70,27 @@ class _MovieDetailViewState extends State<MovieDetailView> {
     final uid = context.read<AuthViewModel>().currentUser?.uid ?? '';
 
     return Scaffold(
-      appBar: AppBar(title: Text(movie.title)),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.zero,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: movie.posterUrl != null
-                  ? Image.network(
-                      movie.posterUrl!,
-                      height: 250,
-                      width: 170,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (_, child, progress) => progress == null
-                          ? child
-                          : const SizedBox(
-                              height: 250,
-                              width: 170,
-                              child: Center(child: CircularProgressIndicator()),
-                            ),
-                      errorBuilder: (context, error, stack) => _posterPlaceholder(),
-                    )
-                  : _posterPlaceholder(),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              movie.title,
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            _DetailRow(label: 'Ano', value: movie.year.toString()),
-            const SizedBox(height: 8),
-            _DetailRow(label: 'Gênero', value: movie.genre),
-            const SizedBox(height: 8),
-            _DetailRow(
-              label: 'Status',
-              value: movie.watched ? 'Assistido' : 'Não assistido',
-              valueColor: movie.watched ? Colors.green : Colors.grey,
-            ),
-
-            const SizedBox(height: 32),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Avaliações',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const Divider(),
+            _ImmersiveHeader(movie: movie),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Avaliações',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const Divider(),
 
             // Lista de avaliações em tempo real
             StreamBuilder<List<Review>>(
@@ -199,17 +168,21 @@ class _MovieDetailViewState extends State<MovieDetailView> {
               maxLines: 3,
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : () => _saveReview(context),
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Salvar Avaliação'),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : () => _saveReview(context),
+                      child: _isSaving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Salvar Avaliação'),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -217,13 +190,6 @@ class _MovieDetailViewState extends State<MovieDetailView> {
       ),
     );
   }
-
-  Widget _posterPlaceholder() => Container(
-    height: 250,
-    width: 170,
-    color: Colors.grey[800],
-    child: const Icon(Icons.movie, size: 60, color: Colors.grey),
-  );
 }
 
 class _ReviewTile extends StatelessWidget {
@@ -271,20 +237,148 @@ class _ReviewTile extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? valueColor;
-  const _DetailRow({required this.label, required this.value, this.valueColor});
+/// Header imersivo: pôster em full-width desfocado como fundo, gradiente
+/// escuro por cima e o pôster nítido (Hero) com título e chips sobrepostos.
+class _ImmersiveHeader extends StatelessWidget {
+  final Movie movie;
+  const _ImmersiveHeader({required this.movie});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-        Text(value, style: TextStyle(color: valueColor)),
-      ],
+    const headerHeight = 340.0;
+    final poster = movie.posterUrl;
+
+    return SizedBox(
+      height: headerHeight,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Backdrop desfocado
+          if (poster != null)
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Image.network(
+                poster,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stack) =>
+                    const ColoredBox(color: Color(0xFF1A1A1A)),
+              ),
+            )
+          else
+            const ColoredBox(color: Color(0xFF1A1A1A)),
+
+          // Gradiente escuro sobre o backdrop
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.black54, Color(0xFF0D0D0D)],
+                stops: [0.0, 0.95],
+              ),
+            ),
+          ),
+
+          // Pôster nítido + título + chips
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 16,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Hero(
+                  tag: 'poster-${movie.id}',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: poster != null
+                        ? Image.network(
+                            poster,
+                            width: 110,
+                            height: 165,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stack) =>
+                                const PosterPlaceholder(
+                                    width: 110, height: 165),
+                          )
+                        : const PosterPlaceholder(width: 110, height: 165),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        movie.title,
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(height: 1.0),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _MetaChip(
+                            icon: Icons.calendar_today,
+                            label: '${movie.year}',
+                          ),
+                          _MetaChip(
+                            icon: Icons.local_movies_outlined,
+                            label: movie.genre,
+                          ),
+                          _MetaChip(
+                            icon: movie.watched
+                                ? Icons.check_circle
+                                : Icons.schedule,
+                            label: movie.watched ? 'Assistido' : 'Não assistido',
+                            color: movie.watched ? Colors.green : Colors.grey,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Chip de metadado com ícone, borda sutil e fundo surface.
+class _MetaChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  const _MetaChip({required this.icon, required this.label, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = color ?? Colors.white70;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A).withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: fg),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(fontSize: 12, color: fg)),
+        ],
+      ),
     );
   }
 }

@@ -79,38 +79,88 @@ class AccountView extends StatelessWidget {
               child: Text('Nenhum usuário autenticado.', style: TextStyle(fontSize: 16)),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 55,
-                    backgroundImage: profile?.photoUrl != null
-                        ? NetworkImage(profile!.photoUrl!)
-                        : null,
-                    child: profile?.photoUrl == null
-                        ? const Icon(Icons.person, size: 60)
-                        : null,
-                  ),
-                  const SizedBox(height: 20),
+                  _ProfileBanner(photoUrl: profile?.photoUrl),
+                  const SizedBox(height: 16),
                   Text(
                     profile?.name ?? user.displayName ?? 'Usuário desconhecido',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 30),
-                  _InfoTile(
-                    icon: Icons.email,
-                    label: 'E-mail',
-                    value: profile?.email ?? user.email ?? '-',
-                  ),
-                  const SizedBox(height: 16),
-                  _InfoTile(
-                    icon: Icons.phone,
-                    label: 'Telefone',
-                    value: profile?.phone ?? 'Não informado',
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                    child: Column(
+                      children: [
+                        _InfoTile(
+                          icon: Icons.email,
+                          label: 'E-mail',
+                          value: profile?.email ?? user.email ?? '-',
+                        ),
+                        const SizedBox(height: 16),
+                        _InfoTile(
+                          icon: Icons.phone,
+                          label: 'Telefone',
+                          value: profile?.phone ?? 'Não informado',
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
+    );
+  }
+}
+
+/// Banner de perfil: faixa com gradiente vermelho → preto e o avatar
+/// posicionado sobreposto na borda inferior (metade dentro, metade fora).
+class _ProfileBanner extends StatelessWidget {
+  final String? photoUrl;
+  const _ProfileBanner({this.photoUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 215,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            height: 160,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFBF1506), Color(0xFF0D0D0D)],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 105,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0D0D0D),
+                  shape: BoxShape.circle,
+                ),
+                child: CircleAvatar(
+                  radius: 55,
+                  backgroundColor: const Color(0xFF1A1A1A),
+                  backgroundImage:
+                      photoUrl != null ? NetworkImage(photoUrl!) : null,
+                  child: photoUrl == null
+                      ? const Icon(Icons.person, size: 60)
+                      : null,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
