@@ -70,13 +70,18 @@ service cloud.firestore {
 
 ## Configuração da chave OMDb
 
-Crie (ou edite) o arquivo `.env` na raiz do projeto com sua chave:
+Crie (ou edite) o arquivo `assets/omdb.env` com sua chave:
 
 ```
 OMDB_API_KEY=sua_chave_aqui
 ```
 
-> O arquivo `.env` está no `.gitignore` e nunca é commitado. Use `.env.example` como referência.
+> O arquivo `assets/omdb.env` está no `.gitignore` e nunca é commitado. Use
+> `assets/omdb.env.example` como referência (`cp assets/omdb.env.example assets/omdb.env`).
+>
+> O arquivo é um asset normal (sem ponto no nome) para que o `flutter_dotenv`
+> também funcione na build **web** — arquivos iniciados por `.` são excluídos do
+> Firebase Hosting pela regra `**/.*` do `firebase.json`.
 
 ## Executando o projeto
 

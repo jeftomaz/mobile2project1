@@ -30,7 +30,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/framy_logo.png
-    - .env
+    - assets/omdb.env
 
 flutter_launcher_icons:
   android: true

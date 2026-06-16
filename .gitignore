@@ -46,3 +46,5 @@ app.*.map.json
 
 # Environment variables (chaves de API)
 .env
+assets/omdb.env
+!assets/omdb.env.example
