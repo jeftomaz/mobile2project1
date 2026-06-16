@@ -17,6 +17,32 @@ class MovieViewModel extends ChangeNotifier {
   List<Movie> _movies = [];
   List<Movie> get movies => List.unmodifiable(_movies);
 
+  /// A fila ("Quero ver"), do mais recente ao mais antigo.
+  List<Movie> get watchlist {
+    final list =
+        _movies.where((m) => m.status == MovieStatus.wantToWatch).toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
+  /// O diário ("Já vi"), ordenado pela data em que foi assistido (mais recente
+  /// primeiro).
+  List<Movie> get diary {
+    final list =
+        _movies.where((m) => m.status == MovieStatus.watched).toList();
+    list.sort((a, b) => b.diaryDate.compareTo(a.diaryDate));
+    return list;
+  }
+
+  /// O destaque da entrada: o último filme do diário ou, na ausência dele, o
+  /// próximo da fila.
+  Movie? get highlight {
+    final d = diary;
+    if (d.isNotEmpty) return d.first;
+    final w = watchlist;
+    return w.isNotEmpty ? w.first : null;
+  }
+
   bool _streamLoaded = false;
   bool get isStreamLoaded => _streamLoaded;
 
@@ -64,8 +90,14 @@ class MovieViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> toggleWatched(String id, bool currentValue) =>
-      _repo.toggleWatched(id, currentValue);
+  Future<void> markWatched(Movie movie) => _repo.markWatched(movie.id);
+
+  Future<void> markWantToWatch(Movie movie) => _repo.markWantToWatch(movie.id);
+
+  /// Alterna entre fila e diário conforme o estado atual do filme.
+  Future<void> toggleWatched(Movie movie) => movie.watched
+      ? _repo.markWantToWatch(movie.id)
+      : _repo.markWatched(movie.id);
 
   Future<void> deleteMovie(String id) => _repo.deleteMovie(id);
 

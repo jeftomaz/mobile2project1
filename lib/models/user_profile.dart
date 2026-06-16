@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UserProfile {
   final String uid;
   final String name;
+  final String username;
   final String email;
   final String phone;
   final DateTime createdAt;
@@ -11,6 +12,7 @@ class UserProfile {
   UserProfile({
     required this.uid,
     required this.name,
+    required this.username,
     required this.email,
     required this.phone,
     DateTime? createdAt,
@@ -22,6 +24,7 @@ class UserProfile {
     return UserProfile(
       uid: doc.id,
       name: data['name'] as String,
+      username: data['username'] as String? ?? '',
       email: data['email'] as String,
       phone: data['phone'] as String,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
@@ -31,6 +34,7 @@ class UserProfile {
 
   Map<String, dynamic> toMap() => {
     'name': name,
+    'username': username,
     'email': email,
     'phone': phone,
     'createdAt': Timestamp.fromDate(createdAt),

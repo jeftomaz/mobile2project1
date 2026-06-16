@@ -20,8 +20,19 @@ class MovieRepository {
   Future<void> updateMovie(Movie movie) =>
       _col.doc(movie.id).update(movie.toMap());
 
-  Future<void> toggleWatched(String id, bool currentValue) =>
-      _col.doc(id).update({'watched': !currentValue});
+  /// Move o filme para o diário ("Já vi"), datando o marco.
+  Future<void> markWatched(String id, {DateTime? at}) => _col.doc(id).update({
+    'status': MovieStatus.watched.name,
+    'watched': true,
+    'watchedAt': Timestamp.fromDate(at ?? DateTime.now()),
+  });
+
+  /// Devolve o filme para a fila ("Quero ver"), limpando a data do diário.
+  Future<void> markWantToWatch(String id) => _col.doc(id).update({
+    'status': MovieStatus.wantToWatch.name,
+    'watched': false,
+    'watchedAt': null,
+  });
 
   Future<void> deleteMovie(String id) => _col.doc(id).delete();
 

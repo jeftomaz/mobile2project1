@@ -4,7 +4,22 @@ Gerenciador pessoal de filmes desenvolvido em Flutter com Firebase como backend.
 
 ## Funcionalidades
 
+O app é organizado em **três mundos**:
+
+- **Agora** — entrada-capa em tela cheia do destaque do momento (último assistido
+  ou próximo da fila) e o carrossel "Próximo da fila".
+- **Diário** — timeline temporal do que já foi assistido, agrupada por mês/ano,
+  com o pôster como marco de cada memória datada.
+- **Eu** — identidade cinéfila: manifesto pessoal ("Você assistiu X filmes · Y
+  gêneros · sua era favorita é os anos 90"), perfil e estatísticas como retrato.
+
+Recursos:
+
 - Cadastro e autenticação de usuários (Firebase Auth)
+- Dois estados emocionais por filme: **Quero ver** (fila) e **Já vi** (diário),
+  com data de visualização (`watchedAt`)
+- Página de detalhe editorial: pôster gigante, nota em destaque, resenha em
+  tipografia serifada (Playfair) e a pergunta central "o que você sentiu?"
 - Gerenciamento de filmes com capa via API OMDb
 - Gêneros personalizados por usuário
 - Avaliações com nota (1–5 estrelas) e comentário
@@ -115,27 +130,32 @@ firebase deploy --only hosting
 lib/
 ├── core/
 │   ├── app_theme.dart        # Tema global
+│   ├── date_format.dart      # Formatação de datas em português
 │   └── validators.dart       # Validação de senha e e-mail
 ├── models/
-│   ├── movie.dart            # Modelo de filme (Firestore)
+│   ├── movie.dart            # Filme + MovieStatus (queroVer/jáVi) + watchedAt
 │   ├── user_profile.dart     # Perfil do usuário
 │   ├── genre.dart            # Gênero personalizado
 │   └── review.dart           # Avaliação de filme
 ├── repositories/
 │   ├── auth_repository.dart  # Auth + gravação em usuarios/
-│   ├── movie_repository.dart # CRUD + stream de filmes/
+│   ├── movie_repository.dart # CRUD + stream + markWatched/markWantToWatch
 │   ├── genre_repository.dart # CRUD + stream de generos/
 │   └── review_repository.dart# CRUD + stream de avaliacoes/
 ├── services/
 │   └── omdb_service.dart     # Consumo da API OMDb
 ├── viewmodels/
 │   ├── auth_viewmodel.dart
-│   ├── movie_viewmodel.dart
+│   ├── movie_viewmodel.dart  # Getters watchlist, diary, diaryByMonth, highlight
 │   └── genre_viewmodel.dart
+├── widgets/
+│   ├── movie_poster.dart     # Pôster com Hero + placeholder
+│   └── poster_placeholder.dart
 ├── views/
 │   ├── auth/                 # Login, cadastro, recuperação de senha
-│   ├── home/                 # Tela principal com navegação inferior
-│   ├── specific/             # Detalhe, adição, edição, busca, stats
+│   ├── home/                 # Três mundos: now_view, diary_view, me_view
+│   │                         # + home_view (casca) e home_actions (compartilhado)
+│   ├── specific/             # Detalhe editorial, adição, edição, busca, stats
 │   └── about/
 └── main.dart
 ```

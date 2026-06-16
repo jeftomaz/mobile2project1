@@ -14,6 +14,7 @@ class RegisterView extends StatefulWidget {
 
 class _RegisterViewState extends State<RegisterView> {
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -26,6 +27,7 @@ class _RegisterViewState extends State<RegisterView> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
@@ -50,6 +52,17 @@ class _RegisterViewState extends State<RegisterView> {
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Nome'),
               textCapitalization: TextCapitalization.words,
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _usernameController,
+              decoration: const InputDecoration(
+                labelText: 'Nome de usuário',
+                prefixText: '@',
+                hintText: 'cinefilo_99',
+              ),
+              autocorrect: false,
               style: const TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 16),
@@ -137,6 +150,7 @@ class _RegisterViewState extends State<RegisterView> {
     try {
       await vm.register(
         name: _nameController.text,
+        username: _usernameController.text,
         email: _emailController.text,
         phone: _phoneController.text,
         password: _passwordController.text,

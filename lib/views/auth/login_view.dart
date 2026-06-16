@@ -63,22 +63,31 @@ class _LoginViewState extends State<LoginView>
             child: CustomPaint(painter: _GrainPainter()),
           ),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  FadeTransition(
-                    opacity: _fade,
-                    child: ScaleTransition(
-                      scale: _scale,
-                      child: Image.asset(
-                        'assets/images/framy_logo.png',
-                        height: 220,
-                      ),
-                    ),
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+                // Faz o conteúdo ocupar ao menos a altura visível para que o
+                // Spacer empurre o formulário para a base; ainda rola quando o
+                // teclado reduz o espaço disponível.
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 60,
                   ),
-                  const SizedBox(height: 24),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        FadeTransition(
+                          opacity: _fade,
+                          child: ScaleTransition(
+                            scale: _scale,
+                            child: Image.asset(
+                              'assets/images/framy_logo.png',
+                              height: 220,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
               TextField(
                 controller: _emailController,
                 decoration: const InputDecoration(
@@ -124,7 +133,10 @@ class _LoginViewState extends State<LoginView>
                         Navigator.pushNamed(context, '/forgot-password'),
                     child: const Text('Esqueceu a senha?'),
                   ),
-                ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

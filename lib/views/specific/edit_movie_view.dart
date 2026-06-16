@@ -126,7 +126,8 @@ class _EditMovieViewState extends State<EditMovieView> {
       year: year,
       genre: _selectedGenre!,
       posterUrl: _posterUrl,
-      watched: widget.movie.watched,
+      status: widget.movie.status,
+      watchedAt: widget.movie.watchedAt,
       createdAt: widget.movie.createdAt,
     );
 

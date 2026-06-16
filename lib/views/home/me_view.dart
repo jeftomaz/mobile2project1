@@ -2,40 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/movie_viewmodel.dart';
-import '../../viewmodels/genre_viewmodel.dart';
+import '../specific/movie_stats_view.dart';
+import 'home_actions.dart';
 
-class AccountView extends StatelessWidget {
-  const AccountView({super.key});
-
-  void _handleLogout(BuildContext context) async {
-    final authVM = context.read<AuthViewModel>();
-    final movieVM = context.read<MovieViewModel>();
-    final genreVM = context.read<GenreViewModel>();
-
-    try {
-      await authVM.logout();
-      movieVM.clearCurrentUser();
-      genreVM.clearCurrentUser();
-
-      if (!context.mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-    } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao sair da conta.')),
-      );
-    }
-  }
+/// **Eu** — a identidade cinéfila. A coleção vira retrato, não inventário: um
+/// manifesto pessoal no topo, seguido do perfil e das estatísticas como
+/// "retrato de gosto".
+class MeView extends StatelessWidget {
+  const MeView({super.key});
 
   @override
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
     final user = authVM.currentUser;
     final profile = authVM.profile;
+    final movieVM = context.watch<MovieViewModel>();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Minha Conta'),
+        title: const Text('Eu'),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
@@ -43,41 +28,11 @@ class AccountView extends StatelessWidget {
             tooltip: 'Editar perfil',
             onPressed: () => Navigator.pushNamed(context, '/profile/edit'),
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'about':
-                  Navigator.pushNamed(context, '/about');
-                  break;
-                case 'logout':
-                  _handleLogout(context);
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'about',
-                child: ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Sobre'),
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'logout',
-                child: ListTile(
-                  leading: Icon(Icons.logout),
-                  title: Text('Sair'),
-                ),
-              ),
-            ],
-          ),
+          const AppOverflowMenu(),
         ],
       ),
       body: user == null
-          ? const Center(
-              child: Text('Nenhum usuário autenticado.', style: TextStyle(fontSize: 16)),
-            )
+          ? const Center(child: Text('Nenhum usuário autenticado.'))
           : SingleChildScrollView(
               child: Column(
                 children: [
@@ -86,10 +41,28 @@ class AccountView extends StatelessWidget {
                   Text(
                     profile?.name ?? user.displayName ?? 'Usuário desconhecido',
                     style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (profile?.username != null &&
+                      profile!.username.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '@${profile.username}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _Manifesto(movies: movieVM.movies),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
                     child: Column(
                       children: [
                         _InfoTile(
@@ -97,7 +70,7 @@ class AccountView extends StatelessWidget {
                           label: 'E-mail',
                           value: profile?.email ?? user.email ?? '-',
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         _InfoTile(
                           icon: Icons.phone,
                           label: 'Telefone',
@@ -106,6 +79,9 @@ class AccountView extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const Divider(height: 1),
+                  // Estatísticas absorvidas em "Eu" como retrato de gosto.
+                  const MovieStatsView(embedded: true),
                 ],
               ),
             ),
@@ -113,8 +89,63 @@ class AccountView extends StatelessWidget {
   }
 }
 
+/// A frase-manifesto: "Você assistiu X filmes · Y gêneros · sua era favorita é
+/// os anos 90", derivada do acervo do usuário.
+class _Manifesto extends StatelessWidget {
+  final List movies;
+  const _Manifesto({required this.movies});
+
+  @override
+  Widget build(BuildContext context) {
+    final watched = movies.where((m) => m.watched).toList();
+    final genres = movies.map((m) => m.genre).toSet().length;
+
+    // Década favorita: moda dos anos dos filmes assistidos.
+    String? era;
+    if (watched.isNotEmpty) {
+      final decades = <int, int>{};
+      for (final m in watched) {
+        final decade = (m.year ~/ 10) * 10;
+        decades[decade] = (decades[decade] ?? 0) + 1;
+      }
+      final top = decades.entries.reduce((a, b) => a.value >= b.value ? a : b);
+      era = _decadeLabel(top.key);
+    }
+
+    final parts = <String>[
+      'Você assistiu ${watched.length} filme${watched.length != 1 ? 's' : ''}',
+      if (genres > 0) '$genres gênero${genres != 1 ? 's' : ''}',
+      if (era != null) 'sua era favorita é $era',
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+            Theme.of(context).colorScheme.surface,
+          ],
+        ),
+      ),
+      child: Text(
+        '${parts.join(' · ')}.',
+        style: const TextStyle(fontSize: 15, height: 1.4),
+      ),
+    );
+  }
+
+  String _decadeLabel(int decade) {
+    if (decade >= 2000) return 'os anos $decade';
+    final short = decade % 100; // 90, 80...
+    return 'os anos $short';
+  }
+}
+
 /// Banner de perfil: faixa com gradiente vermelho → preto e o avatar
-/// posicionado sobreposto na borda inferior (metade dentro, metade fora).
+/// sobreposto na borda inferior.
 class _ProfileBanner extends StatelessWidget {
   final String? photoUrl;
   const _ProfileBanner({this.photoUrl});
@@ -150,8 +181,9 @@ class _ProfileBanner extends StatelessWidget {
                 child: CircleAvatar(
                   radius: 55,
                   backgroundColor: const Color(0xFF1A1A1A),
-                  backgroundImage:
-                      photoUrl != null ? NetworkImage(photoUrl!) : null,
+                  backgroundImage: photoUrl != null
+                      ? NetworkImage(photoUrl!)
+                      : null,
                   child: photoUrl == null
                       ? const Icon(Icons.person, size: 60)
                       : null,
@@ -199,7 +231,10 @@ class _InfoTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),

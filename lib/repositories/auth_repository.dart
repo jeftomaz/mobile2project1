@@ -10,8 +10,19 @@ class AuthRepository {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  /// Verifica se um @handle (já normalizado) está em uso por outro usuário.
+  Future<bool> isUsernameTaken(String username) async {
+    final snap = await _db
+        .collection('usuarios')
+        .where('username', isEqualTo: username)
+        .limit(1)
+        .get();
+    return snap.docs.isNotEmpty;
+  }
+
   Future<User> register({
     required String name,
+    required String username,
     required String email,
     required String phone,
     required String password,
@@ -26,6 +37,7 @@ class AuthRepository {
     final profile = UserProfile(
       uid: user.uid,
       name: name.trim(),
+      username: username,
       email: email.trim(),
       phone: phone.trim(),
     );
@@ -51,8 +63,17 @@ class AuthRepository {
     return doc.exists ? UserProfile.fromDoc(doc) : null;
   }
 
-  Future<void> updateProfile(String uid, {required String name, required String phone}) async {
-    await _db.collection('usuarios').doc(uid).update({'name': name, 'phone': phone});
+  Future<void> updateProfile(
+    String uid, {
+    required String name,
+    required String username,
+    required String phone,
+  }) async {
+    await _db.collection('usuarios').doc(uid).update({
+      'name': name,
+      'username': username,
+      'phone': phone,
+    });
     await _auth.currentUser?.updateDisplayName(name);
   }
 }

@@ -20,6 +20,8 @@ class _AddMovieViewState extends State<AddMovieView> {
   String? _selectedGenre;
   String? _posterUrl;
   bool _isSearching = false;
+  // Define em qual mundo o filme entra: fila ("Quero ver") ou diário ("Já vi").
+  bool _alreadyWatched = false;
 
   @override
   void dispose() {
@@ -120,6 +122,8 @@ class _AddMovieViewState extends State<AddMovieView> {
       year: year,
       genre: _selectedGenre!,
       posterUrl: _posterUrl,
+      status: _alreadyWatched ? MovieStatus.watched : MovieStatus.wantToWatch,
+      watchedAt: _alreadyWatched ? DateTime.now() : null,
     );
 
     try {
@@ -219,6 +223,37 @@ class _AddMovieViewState extends State<AddMovieView> {
                   .map((g) => DropdownMenuItem(value: g, child: Text(g)))
                   .toList(),
               onChanged: (value) => setState(() => _selectedGenre = value),
+            ),
+            const SizedBox(height: 20),
+            // Em qual mundo o filme entra.
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Onde adicionar?',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                    value: false,
+                    icon: Icon(Icons.bookmark_outline),
+                    label: Text('Quero ver'),
+                  ),
+                  ButtonSegment(
+                    value: true,
+                    icon: Icon(Icons.check_circle_outline),
+                    label: Text('Já vi'),
+                  ),
+                ],
+                selected: {_alreadyWatched},
+                onSelectionChanged: (s) =>
+                    setState(() => _alreadyWatched = s.first),
+                showSelectedIcon: false,
+              ),
             ),
             const SizedBox(height: 24),
             SizedBox(

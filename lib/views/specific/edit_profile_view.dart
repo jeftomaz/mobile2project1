@@ -11,6 +11,7 @@ class EditProfileView extends StatefulWidget {
 
 class _EditProfileViewState extends State<EditProfileView> {
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _phoneController = TextEditingController();
 
   @override
@@ -18,12 +19,14 @@ class _EditProfileViewState extends State<EditProfileView> {
     super.initState();
     final profile = context.read<AuthViewModel>().profile;
     _nameController.text = profile?.name ?? '';
+    _usernameController.text = profile?.username ?? '';
     _phoneController.text = profile?.phone ?? '';
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
@@ -33,6 +36,7 @@ class _EditProfileViewState extends State<EditProfileView> {
     try {
       await authVM.updateProfile(
         name: _nameController.text,
+        username: _usernameController.text,
         phone: _phoneController.text,
       );
       if (!context.mounted) return;
@@ -62,6 +66,16 @@ class _EditProfileViewState extends State<EditProfileView> {
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Nome'),
               textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _usernameController,
+              decoration: const InputDecoration(
+                labelText: 'Nome de usuário',
+                prefixText: '@',
+              ),
+              autocorrect: false,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 16),

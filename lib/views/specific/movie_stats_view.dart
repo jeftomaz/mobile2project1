@@ -109,8 +109,9 @@ class MovieStatsView extends StatelessWidget {
                       fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
-                Expanded(
-                  child: ListView.builder(
+                ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: sortedGenres.length,
                     itemBuilder: (context, index) {
                       final entry = sortedGenres[index];
@@ -162,7 +163,6 @@ class MovieStatsView extends StatelessWidget {
                       );
                     },
                   ),
-                ),
               ],
             ),
           );

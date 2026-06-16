@@ -42,27 +42,43 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<void> register({
     required String name,
+    required String username,
     required String email,
     required String phone,
     required String password,
     required String confirmPassword,
   }) async {
-    if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
+    if (name.isEmpty ||
+        username.isEmpty ||
+        email.isEmpty ||
+        phone.isEmpty ||
+        password.isEmpty) {
       throw Exception('Preencha todos os campos obrigatórios.');
     }
     if (!Validators.isValidEmail(email)) {
       throw Exception('E-mail inválido.');
     }
+    final usernameError = Validators.username(username);
+    if (usernameError != null) throw Exception(usernameError);
     if (password != confirmPassword) {
       throw Exception('As senhas não conferem.');
     }
     final pwError = Validators.password(password);
     if (pwError != null) throw Exception(pwError);
 
+    final handle = Validators.normalizeUsername(username);
+
+    // Checagem de unicidade fora do try principal para preservar a mensagem
+    // específica (o catch genérico abaixo só trata falhas inesperadas).
+    if (await _isUsernameTaken(handle)) {
+      throw Exception('Este nome de usuário já está em uso.');
+    }
+
     _setLoading(true);
     try {
       await _repo.register(
         name: name,
+        username: handle,
         email: email,
         phone: phone,
         password: password,
@@ -99,20 +115,48 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateProfile({required String name, required String phone}) async {
+  Future<void> updateProfile({
+    required String name,
+    required String username,
+    required String phone,
+  }) async {
     final uid = _repo.currentUser?.uid;
     if (uid == null) throw Exception('Usuário não autenticado.');
 
     if (name.trim().isEmpty) throw Exception('O nome não pode estar vazio.');
+    final usernameError = Validators.username(username);
+    if (usernameError != null) throw Exception(usernameError);
+
+    final handle = Validators.normalizeUsername(username);
+
+    // Só checa unicidade se o @handle mudou em relação ao perfil atual.
+    if (handle != _profile?.username && await _isUsernameTaken(handle)) {
+      throw Exception('Este nome de usuário já está em uso.');
+    }
 
     _setLoading(true);
     try {
-      await _repo.updateProfile(uid, name: name.trim(), phone: phone.trim());
+      await _repo.updateProfile(
+        uid,
+        name: name.trim(),
+        username: handle,
+        phone: phone.trim(),
+      );
       await _loadProfile();
     } catch (_) {
       throw Exception('Erro ao atualizar perfil. Tente novamente.');
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /// Consulta a coleção `usuarios` por um @handle. Em falha de rede, assume
+  /// "não está em uso" para não travar o fluxo (a unicidade é best-effort).
+  Future<bool> _isUsernameTaken(String handle) async {
+    try {
+      return await _repo.isUsernameTaken(handle);
+    } catch (_) {
+      return false;
     }
   }
 
