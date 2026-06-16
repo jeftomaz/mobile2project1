@@ -86,13 +86,17 @@ OMDB_API_KEY=sua_chave_aqui
 ## Executando o projeto
 
 ```bash
-# 1. Instalar dependências
+# 1. Configurar a chave OMDb (obrigatório antes de buildar)
+cp assets/omdb.env.example assets/omdb.env
+# edite assets/omdb.env e informe sua OMDB_API_KEY
+
+# 2. Instalar dependências
 flutter pub get
 
-# 2. Rodar no dispositivo/emulador conectado
+# 3. Rodar no dispositivo/emulador conectado
 flutter run
 
-# 3. Rodar em plataforma específica
+# 4. Rodar em plataforma específica
 flutter run -d android
 flutter run -d ios
 flutter run -d chrome
