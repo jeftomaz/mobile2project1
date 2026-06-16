@@ -55,6 +55,15 @@ service cloud.firestore {
     match /usuarios/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+    // Índice de @handles para garantir nomes de usuário únicos.
+    // Leitura pública permite checar disponibilidade antes do login.
+    match /usernames/{handle} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null
+        && resource.data.uid == request.auth.uid;
+    }
   }
 }
 ```

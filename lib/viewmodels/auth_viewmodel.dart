@@ -84,6 +84,9 @@ class AuthViewModel extends ChangeNotifier {
         password: password,
       );
       await _loadProfile();
+      // Reserva o handle agora que o usuário está autenticado (best-effort).
+      final uid = _repo.currentUser?.uid;
+      if (uid != null) await _tryClaimUsername(handle, uid);
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapFirebaseError(e.code));
     } catch (_) {
@@ -130,7 +133,9 @@ class AuthViewModel extends ChangeNotifier {
     final handle = Validators.normalizeUsername(username);
 
     // Só checa unicidade se o @handle mudou em relação ao perfil atual.
-    if (handle != _profile?.username && await _isUsernameTaken(handle)) {
+    final oldHandle = _profile?.username ?? '';
+    final handleChanged = handle != oldHandle;
+    if (handleChanged && await _isUsernameTaken(handle)) {
       throw Exception('Este nome de usuário já está em uso.');
     }
 
@@ -143,6 +148,11 @@ class AuthViewModel extends ChangeNotifier {
         phone: phone.trim(),
       );
       await _loadProfile();
+      // Migra a reserva do handle antigo para o novo (best-effort).
+      if (handleChanged) {
+        await _tryClaimUsername(handle, uid);
+        if (oldHandle.isNotEmpty) await _tryReleaseUsername(oldHandle);
+      }
     } catch (_) {
       throw Exception('Erro ao atualizar perfil. Tente novamente.');
     } finally {
@@ -150,13 +160,30 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  /// Consulta a coleção `usuarios` por um @handle. Em falha de rede, assume
-  /// "não está em uso" para não travar o fluxo (a unicidade é best-effort).
+  /// Consulta o índice `usernames` por um @handle. Em falha (ex.: regras ainda
+  /// não publicadas), assume "disponível" para não travar o fluxo — a unicidade
+  /// é best-effort e só passa a valer com a regra publicada.
   Future<bool> _isUsernameTaken(String handle) async {
     try {
       return await _repo.isUsernameTaken(handle);
     } catch (_) {
       return false;
+    }
+  }
+
+  Future<void> _tryClaimUsername(String handle, String uid) async {
+    try {
+      await _repo.claimUsername(handle, uid);
+    } catch (_) {
+      // Silencioso: o cadastro/atualização não deve falhar por causa do índice.
+    }
+  }
+
+  Future<void> _tryReleaseUsername(String handle) async {
+    try {
+      await _repo.releaseUsername(handle);
+    } catch (_) {
+      // Silencioso.
     }
   }
 
